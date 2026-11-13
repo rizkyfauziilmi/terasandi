@@ -1,10 +1,21 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller.js';
-import { AppService } from './app.service.js';
+import { DrizzleModule } from '@nestjs/drizzle';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { relations } from './db/relations.js';
 
 @Module({
-  imports: [],
-  controllers: [AppController],
-  providers: [AppService],
+  imports: [
+    ConfigModule.forRoot(),
+    DrizzleModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        drizzle,
+        connection: configService.getOrThrow<string>('DATABASE_URL'),
+        relations,
+      }),
+      inject: [ConfigService],
+    }),
+  ],
 })
 export class AppModule {}

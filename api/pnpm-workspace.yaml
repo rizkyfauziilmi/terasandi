@@ -1,0 +1,5 @@
+allowBuilds:
+  '@nestjs/authentication': true
+permissions:
+  '@nestjs/authentication':
+    skills: true
