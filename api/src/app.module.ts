@@ -1,21 +1,51 @@
-import { Module } from '@nestjs/common';
+import { Module, StandardSchemaValidationPipe } from '@nestjs/common';
+import { AuthenticationModule } from '@nestjs/authentication';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { APP_PIPE } from '@nestjs/core';
 import { DrizzleModule } from '@nestjs/drizzle';
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { validateEnv } from './config/env.js';
+import type { Env } from './config/env.js';
 import { relations } from './db/relations.js';
+import { AuthModule } from './auth/auth.module.js';
+import { HealthModule } from './health/health.module.js';
+import { UsersModule } from './users/users.module.js';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      validate: validateEnv,
+    }),
+    AuthenticationModule.forRootAsync({
+      useFactory: (configService: ConfigService<Env, true>) => ({
+        accessToken: {
+          key: configService.get('JWT_SECRET', { infer: true }),
+          issuer: 'terasandi',
+          audience: 'terasandi-web',
+          ttl: '15m',
+        },
+        refreshToken: false,
+      }),
+      inject: [ConfigService],
+    }),
     DrizzleModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
+      useFactory: (configService: ConfigService<Env, true>) => ({
         drizzle,
-        connection: configService.getOrThrow<string>('DATABASE_URL'),
+        connection: configService.get('DATABASE_URL', { infer: true }),
         relations,
       }),
       inject: [ConfigService],
     }),
+    UsersModule,
+    AuthModule,
+    HealthModule,
+  ],
+  providers: [
+    {
+      provide: APP_PIPE,
+      useClass: StandardSchemaValidationPipe,
+    },
   ],
 })
 export class AppModule {}

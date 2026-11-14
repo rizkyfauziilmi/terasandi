@@ -1,8 +1,15 @@
+import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module.js';
+import type { Env } from './config/env.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  await app.listen(process.env.PORT ?? 8080);
+  const config = app.get<ConfigService<Env, true>>(ConfigService);
+
+  app.enableShutdownHooks();
+
+  await app.listen(config.getOrThrow('PORT', { infer: true }));
 }
+
 await bootstrap();

@@ -29,13 +29,15 @@ Our philosophy is simple:
 The initial release focuses on the essential private cloud drive experience. Progress is tracked per feature below — files are managed through the application and controlled sharing links, just like Google Drive.
 
 ### 1. Authentication & Accounts
-- [ ] Register new user
-- [ ] Login and logout
-- [ ] Secure password hashing
-- [ ] Session / token-based authentication
-- [ ] Route protection middleware
+
+- [x] Register new user
+- [x] Login and logout
+- [x] Secure password hashing
+- [x] Session / token-based authentication
+- [x] Route protection middleware
 
 ### 2. Upload & Storage
+
 - [ ] Upload file through application interface
 - [ ] File storage in application internal storage
 - [ ] File metadata stored in database
@@ -43,6 +45,7 @@ The initial release focuses on the essential private cloud drive experience. Pro
 - [ ] Unique identifier for each file
 
 ### 3. File & Folder Management
+
 - [ ] Download file
 - [ ] Create folder
 - [ ] Browse files and folders
@@ -53,6 +56,7 @@ The initial release focuses on the essential private cloud drive experience. Pro
 - [ ] Search files and folders
 
 ### 4. File Sharing
+
 - [ ] Create unique sharing link
 - [ ] Share individual files
 - [ ] Share folders
@@ -63,6 +67,7 @@ The initial release focuses on the essential private cloud drive experience. Pro
 - [ ] Validate shared resource access
 
 ### 5. Web Interface
+
 - [ ] Dashboard page
 - [ ] Login and registration pages
 - [ ] File browser interface
@@ -75,6 +80,7 @@ The initial release focuses on the essential private cloud drive experience. Pro
 - [ ] Responsive layout
 
 ### 6. Security & MVP Release
+
 - [ ] Validate all file operations on server
 - [ ] Authorization on every protected endpoint
 - [ ] Prevent path traversal and IDOR
