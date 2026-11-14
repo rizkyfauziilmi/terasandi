@@ -13,7 +13,7 @@ const at = (name: string) =>
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
-  email: text('email').notNull().unique(),
+  username: text().notNull().unique(),
   passwordHash: text('password_hash').notNull(),
   createdAt: at('created_at').notNull().defaultNow(),
   updatedAt: at('updated_at')
