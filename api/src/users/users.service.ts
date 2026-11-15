@@ -56,6 +56,10 @@ export class UsersService {
     return user;
   }
 
+  async hasAnyUser(): Promise<boolean> {
+    return (await this.db.select().from(users).limit(1)).length > 0;
+  }
+
   async updatePasswordHash(id: string, passwordHash: string): Promise<void> {
     await this.db.update(users).set({ passwordHash }).where(eq(users.id, id));
   }
