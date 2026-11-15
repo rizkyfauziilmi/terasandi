@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { AuthApiError, postAuth } from "@/lib/api";
+import type { AuthPath } from "@/lib/api";
 import { clearAccessToken, setAccessToken } from "@/lib/session";
 import { signInSchema } from "@terasandi/contracts";
 import type { SignInDto } from "@terasandi/contracts";
@@ -41,7 +42,7 @@ export async function signOutAction(): Promise<void> {
 }
 
 async function authenticate(
-  path: "/auth/onboarding" | "/auth/sign-in",
+  path: AuthPath,
   credentials: { username: string; password: string },
 ): Promise<AuthActionState> {
   let response;

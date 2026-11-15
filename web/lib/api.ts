@@ -1,22 +1,7 @@
-/** A user as returned by the API. Dates arrive as ISO strings over JSON. */
-export interface ApiUser {
-  id: string;
-  username: string;
-  createdAt: string;
-  updatedAt: string;
-}
+import type { AuthResponse, AuthUser, SignInDto } from "@terasandi/contracts";
 
-/** Response of `POST /auth/onboarding` and `POST /auth/sign-in`. */
-export interface AuthResponse {
-  user: ApiUser;
-  accessToken: string;
-  expiresIn: number;
-}
-
-export interface AuthCredentials {
-  username: string;
-  password: string;
-}
+/** The two endpoints that issue a session. */
+export type AuthPath = "/auth/onboarding" | "/auth/sign-in";
 
 export class AuthApiError extends Error {
   constructor(
@@ -48,8 +33,8 @@ export async function getIsOnboarding(): Promise<boolean | null> {
 }
 
 export async function postAuth(
-  path: "/auth/onboarding" | "/auth/sign-in",
-  credentials: AuthCredentials,
+  path: AuthPath,
+  credentials: SignInDto,
 ): Promise<AuthResponse> {
   let response: Response;
 
@@ -58,7 +43,6 @@ export async function postAuth(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(credentials),
-      cache: "no-store",
     });
   } catch {
     throw new AuthApiError(
@@ -76,7 +60,7 @@ export async function postAuth(
 
 export async function fetchCurrentUser(
   accessToken: string,
-): Promise<ApiUser | null> {
+): Promise<AuthUser | null> {
   try {
     const response = await fetch(`${API_URL}/users/me`, {
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -87,7 +71,7 @@ export async function fetchCurrentUser(
       return null;
     }
 
-    return (await response.json()) as ApiUser;
+    return (await response.json()) as AuthUser;
   } catch {
     return null;
   }

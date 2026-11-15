@@ -1,10 +1,11 @@
+import type { AuthResponse as AuthResponseEnvelope } from '@terasandi/contracts';
 import type { User } from '../db/schema.js';
 
-export interface AuthResponse {
-  user: User;
-  accessToken: string;
-  expiresIn: number;
-}
+/**
+ * The envelope is shared with the web app; the API's user keeps its `Date`
+ * fields, which Nest serializes to the ISO strings the client type expects.
+ */
+export type AuthResponse = AuthResponseEnvelope<User>;
 
 declare module '@nestjs/authentication' {
   interface AuthenticationTypes {

@@ -1,16 +1,9 @@
 import { AuthenticationRegistry } from '@nestjs/authentication';
 import { Test, TestingModule } from '@nestjs/testing';
 import { vi } from 'vitest';
-import type { User } from '../db/schema.js';
+import { testUser as user } from '../../test/fixtures/auth.fixture.js';
 import { UsersService } from '../users/users.service.js';
 import { JwtAuth } from './jwt-auth.provider.js';
-
-const user: User = {
-  id: 'a40890cc-d300-412b-9e3e-b760003170eb',
-  username: 'rizky',
-  createdAt: new Date('2026-01-01T00:00:00.000Z'),
-  updatedAt: new Date('2026-01-01T00:00:00.000Z'),
-};
 
 describe('JwtAuth', () => {
   let provider: JwtAuth;

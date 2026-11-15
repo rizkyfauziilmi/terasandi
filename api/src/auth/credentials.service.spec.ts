@@ -2,15 +2,14 @@ import { PasswordHasher } from '@nestjs/authentication';
 import { ConflictException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { vi } from 'vitest';
-import type { User } from '../db/schema.js';
+import { testUser, testUserRow } from '../../test/fixtures/auth.fixture.js';
 import { UsersService } from '../users/users.service.js';
 import { CredentialsService } from './credentials.service.js';
 
-const user: User = {
-  id: 'a40890cc-d300-412b-9e3e-b760003170eb',
-  username: 'rizky',
-  createdAt: new Date('2026-01-01T00:00:00.000Z'),
-  updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+const password = 'password-12345';
+const storedCredentials = {
+  user: testUser,
+  passwordHash: testUserRow.passwordHash,
 };
 
 describe('CredentialsService', () => {
@@ -55,23 +54,23 @@ describe('CredentialsService', () => {
     it('hashes the password and creates the user', async () => {
       usersService.findByUsername.mockResolvedValue(undefined);
       passwordHasher.hash.mockResolvedValue('hashed-password');
-      usersService.create.mockResolvedValue(user);
+      usersService.create.mockResolvedValue(testUser);
 
-      await expect(service.register('rizky', 'password-12345')).resolves.toBe(
-        user,
-      );
-      expect(passwordHasher.hash).toHaveBeenCalledWith('password-12345');
+      await expect(
+        service.register(testUser.username, password),
+      ).resolves.toBe(testUser);
+      expect(passwordHasher.hash).toHaveBeenCalledWith(password);
       expect(usersService.create).toHaveBeenCalledWith({
-        username: 'rizky',
+        username: testUser.username,
         passwordHash: 'hashed-password',
       });
     });
 
     it('rejects a username that is already taken', async () => {
-      usersService.findByUsername.mockResolvedValue(user);
+      usersService.findByUsername.mockResolvedValue(testUser);
 
       await expect(
-        service.register('rizky', 'password-12345'),
+        service.register(testUser.username, password),
       ).rejects.toBeInstanceOf(ConflictException);
       expect(passwordHasher.hash).not.toHaveBeenCalled();
     });
@@ -84,7 +83,7 @@ describe('CredentialsService', () => {
       });
 
       await expect(
-        service.register('rizky', 'password-12345'),
+        service.register(testUser.username, password),
       ).rejects.toBeInstanceOf(ConflictException);
     });
 
@@ -94,7 +93,7 @@ describe('CredentialsService', () => {
       usersService.create.mockRejectedValue({ code: '23505' });
 
       await expect(
-        service.register('rizky', 'password-12345'),
+        service.register(testUser.username, password),
       ).rejects.toBeInstanceOf(ConflictException);
     });
 
@@ -104,7 +103,7 @@ describe('CredentialsService', () => {
       passwordHasher.hash.mockResolvedValue('hashed-password');
       usersService.create.mockRejectedValue(error);
 
-      await expect(service.register('rizky', 'password-12345')).rejects.toBe(
+      await expect(service.register(testUser.username, password)).rejects.toBe(
         error,
       );
     });
@@ -120,69 +119,55 @@ describe('CredentialsService', () => {
       });
 
       await expect(
-        service.register('rizky', 'password-12345'),
+        service.register(testUser.username, password),
       ).rejects.not.toBeInstanceOf(ConflictException);
     });
   });
 
   describe('verify', () => {
     it('returns the user when the password matches', async () => {
-      usersService.findCredentials.mockResolvedValue({
-        user,
-        passwordHash: 'stored-hash',
-      });
+      usersService.findCredentials.mockResolvedValue(storedCredentials);
       passwordHasher.verify.mockResolvedValue(true);
       passwordHasher.needsRehash.mockReturnValue(false);
 
-      await expect(service.verify('rizky', 'password-12345')).resolves.toBe(
-        user,
+      await expect(service.verify(testUser.username, password)).resolves.toBe(
+        testUser,
       );
       expect(passwordHasher.verify).toHaveBeenCalledWith(
-        'password-12345',
-        'stored-hash',
+        password,
+        storedCredentials.passwordHash,
       );
       expect(usersService.updatePasswordHash).not.toHaveBeenCalled();
     });
 
     it('returns null when the password does not match', async () => {
-      usersService.findCredentials.mockResolvedValue({
-        user,
-        passwordHash: 'stored-hash',
-      });
+      usersService.findCredentials.mockResolvedValue(storedCredentials);
       passwordHasher.verify.mockResolvedValue(false);
 
-      await expect(service.verify('rizky', 'wrong-password')).resolves.toBe(
-        null,
-      );
+      await expect(
+        service.verify(testUser.username, 'wrong-password'),
+      ).resolves.toBeNull();
     });
 
     it('returns null when the username is unknown', async () => {
       usersService.findCredentials.mockResolvedValue(undefined);
       passwordHasher.verify.mockResolvedValue(false);
 
-      await expect(service.verify('unknown', 'password-12345')).resolves.toBe(
-        null,
-      );
-      expect(passwordHasher.verify).toHaveBeenCalledWith(
-        'password-12345',
-        undefined,
-      );
+      await expect(service.verify('unknown', password)).resolves.toBeNull();
+      expect(passwordHasher.verify).toHaveBeenCalledWith(password, undefined);
     });
 
     it('upgrades a stored hash that uses outdated cost settings', async () => {
-      usersService.findCredentials.mockResolvedValue({
-        user,
-        passwordHash: 'old-hash',
-      });
+      usersService.findCredentials.mockResolvedValue(storedCredentials);
       passwordHasher.verify.mockResolvedValue(true);
       passwordHasher.needsRehash.mockReturnValue(true);
       passwordHasher.hash.mockResolvedValue('new-hash');
 
-      await expect(service.verify('rizky', 'password-12345')).resolves.toBe(
-        user,
+      await expect(service.verify(testUser.username, password)).resolves.toBe(
+        testUser,
       );
       expect(usersService.updatePasswordHash).toHaveBeenCalledWith(
-        user.id,
+        testUser.id,
         'new-hash',
       );
     });

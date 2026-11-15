@@ -8,6 +8,7 @@ import { CredentialsService } from './credentials.service.js';
 import { TokenService } from '@nestjs/authentication';
 import { UsersService } from '../users/users.service.js';
 import { SignInDto, SignUpDto } from '@terasandi/contracts';
+import type { User } from '../db/schema.js';
 import { AuthResponse } from './auth.types.js';
 
 @Injectable()
@@ -39,18 +40,14 @@ export class AuthService {
       body.password,
     );
 
-    // The access token carries only `sub`; the user object is returned, never
-    // put into the token's claims.
-    const tokens = await this.tokenService.issue(user.id, {
-      method: 'password',
-    });
+    const response = await this.createSession(user);
 
     this.logger.log('User onboarded', {
       userId: user.id,
       username: user.username,
     });
 
-    return { user, ...tokens };
+    return response;
   }
 
   async signIn(body: SignInDto): Promise<AuthResponse> {
@@ -65,11 +62,21 @@ export class AuthService {
       throw new UnauthorizedException('Invalid username or password');
     }
 
+    const response = await this.createSession(user);
+
+    this.logger.log('User signed in', { userId: user.id });
+
+    return response;
+  }
+
+  /**
+   * The access token carries only `sub`; the user object is returned, never
+   * put into the token's claims.
+   */
+  private async createSession(user: User): Promise<AuthResponse> {
     const tokens = await this.tokenService.issue(user.id, {
       method: 'password',
     });
-
-    this.logger.log('User signed in', { userId: user.id });
 
     return { user, ...tokens };
   }

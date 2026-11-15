@@ -2,22 +2,14 @@ import { ConflictException, Logger, UnauthorizedException } from '@nestjs/common
 import { Test, TestingModule } from '@nestjs/testing';
 import { TokenService } from '@nestjs/authentication';
 import { vi } from 'vitest';
-import type { User } from '../db/schema.js';
+import {
+  testCredentials as credentials,
+  testTokens,
+  testUser,
+} from '../../test/fixtures/auth.fixture.js';
 import { UsersService } from '../users/users.service.js';
 import { AuthService } from './auth.service.js';
 import { CredentialsService } from './credentials.service.js';
-
-const user: User = {
-  id: 'a40890cc-d300-412b-9e3e-b760003170eb',
-  username: 'rizky',
-  createdAt: new Date('2026-01-01T00:00:00.000Z'),
-  updatedAt: new Date('2026-01-01T00:00:00.000Z'),
-};
-
-const credentials = {
-  username: 'rizky',
-  password: 'correct horse battery staple',
-};
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -38,10 +30,7 @@ describe('AuthService', () => {
     usersService = { hasAnyUser: vi.fn() };
     credentialsService = { register: vi.fn(), verify: vi.fn() };
     tokenService = {
-      issue: vi.fn().mockResolvedValue({
-        accessToken: 'token-123',
-        expiresIn: 900,
-      }),
+      issue: vi.fn().mockResolvedValue(testTokens),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -77,7 +66,7 @@ describe('AuthService', () => {
   describe('onboarding', () => {
     it('registers the first user and issues a token', async () => {
       usersService.hasAnyUser.mockResolvedValue(false);
-      credentialsService.register.mockResolvedValue(user);
+      credentialsService.register.mockResolvedValue(testUser);
 
       const result = await service.onboarding(credentials);
 
@@ -85,14 +74,10 @@ describe('AuthService', () => {
         credentials.username,
         credentials.password,
       );
-      expect(tokenService.issue).toHaveBeenCalledWith(user.id, {
+      expect(tokenService.issue).toHaveBeenCalledWith(testUser.id, {
         method: 'password',
       });
-      expect(result).toEqual({
-        user,
-        accessToken: 'token-123',
-        expiresIn: 900,
-      });
+      expect(result).toEqual({ user: testUser, ...testTokens });
     });
 
     it('refuses to register once a user already exists', async () => {
@@ -107,7 +92,7 @@ describe('AuthService', () => {
 
   describe('signIn', () => {
     it('returns the user and a token for valid credentials', async () => {
-      credentialsService.verify.mockResolvedValue(user);
+      credentialsService.verify.mockResolvedValue(testUser);
 
       const result = await service.signIn(credentials);
 
@@ -115,11 +100,7 @@ describe('AuthService', () => {
         credentials.username,
         credentials.password,
       );
-      expect(result).toEqual({
-        user,
-        accessToken: 'token-123',
-        expiresIn: 900,
-      });
+      expect(result).toEqual({ user: testUser, ...testTokens });
     });
 
     it('throws UnauthorizedException for invalid credentials', async () => {
@@ -134,13 +115,13 @@ describe('AuthService', () => {
   describe('logging', () => {
     it('logs a successful onboarding without the password', async () => {
       usersService.hasAnyUser.mockResolvedValue(false);
-      credentialsService.register.mockResolvedValue(user);
+      credentialsService.register.mockResolvedValue(testUser);
 
       await service.onboarding(credentials);
 
       expect(logSpy).toHaveBeenCalledWith('User onboarded', {
-        userId: user.id,
-        username: user.username,
+        userId: testUser.id,
+        username: testUser.username,
       });
       expect(JSON.stringify(logSpy.mock.calls)).not.toContain(
         credentials.password,
@@ -160,12 +141,12 @@ describe('AuthService', () => {
     });
 
     it('logs a successful sign-in without the password', async () => {
-      credentialsService.verify.mockResolvedValue(user);
+      credentialsService.verify.mockResolvedValue(testUser);
 
       await service.signIn(credentials);
 
       expect(logSpy).toHaveBeenCalledWith('User signed in', {
-        userId: user.id,
+        userId: testUser.id,
       });
       expect(JSON.stringify(logSpy.mock.calls)).not.toContain(
         credentials.password,

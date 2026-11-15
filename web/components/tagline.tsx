@@ -1,6 +1,6 @@
 import { FolderOpen, KeyRound, ShieldLock } from "lucide-react";
 
-export default function Tagline() {
+export function Tagline() {
   return (
     <span className="flex items-center gap-2 justify-center">
       <FolderOpen className="size-4" /> Your files.{" "}

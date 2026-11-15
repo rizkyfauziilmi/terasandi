@@ -9,9 +9,9 @@ export default defineConfig({
     root: './',
     include: ['**/*.spec.ts'],
     coverage: {
-      // The bootstrap wires the application and reads the environment; it has
-      // no logic worth a unit test, but it is type-checked by `nest build`.
-      exclude: ['src/main.ts'],
+      // Bootstrap wiring has no logic worth a unit test, and test fixtures are
+      // not production code.
+      exclude: ['src/main.ts', 'test/**'],
     },
   },
 });

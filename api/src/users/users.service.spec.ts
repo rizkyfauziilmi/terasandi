@@ -1,18 +1,12 @@
 import { getDrizzleToken } from '@nestjs/drizzle';
 import { Test, TestingModule } from '@nestjs/testing';
 import { vi } from 'vitest';
+import {
+  testUser as user,
+  testUserRow as userRow,
+} from '../../test/fixtures/auth.fixture.js';
 import { publicUserColumns, users } from '../db/schema.js';
-import type { User, UserRow } from '../db/schema.js';
 import { UsersService } from './users.service.js';
-
-const user: User = {
-  id: 'a40890cc-d300-412b-9e3e-b760003170eb',
-  username: 'rizky',
-  createdAt: new Date('2026-01-01T00:00:00.000Z'),
-  updatedAt: new Date('2026-01-01T00:00:00.000Z'),
-};
-
-const userRow: UserRow = { ...user, passwordHash: 'stored-hash' };
 
 /**
  * A stand-in for the Drizzle query builder: each terminal step resolves to
@@ -97,7 +91,7 @@ describe('UsersService', () => {
 
       await expect(service.findCredentials('rizky')).resolves.toEqual({
         user,
-        passwordHash: 'stored-hash',
+        passwordHash: userRow.passwordHash,
       });
 
       // Unlike the other lookups, this one needs the hash.
