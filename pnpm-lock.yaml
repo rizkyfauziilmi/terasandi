@@ -186,6 +186,9 @@ importers:
       '@nestjs/platform-express':
         specifier: ^12.0.1
         version: 12.5.0(@nestjs/common@12.5.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@12.5.0)(rxjs@7.8.2)(supports-color@7.2.0)
+      '@nestjs/storage':
+        specifier: ^0.0.5
+        version: 0.0.5(@nestjs/common@12.5.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@12.5.0)(reflect-metadata@0.2.2)
       '@terasandi/contracts':
         specifier: workspace:*
         version: link:../packages/contracts
@@ -1164,6 +1167,14 @@ packages:
     peerDependenciesMeta:
       prettier:
         optional: true
+
+  '@nestjs/storage@0.0.5':
+    resolution: {integrity: sha512-Vd1oBnG+FjPe8C1hMrRo5yEfzj1ydvlp2e17ks9EXYXs1a5Ucp+IU2a4ZGeWd6I2Jr2pmvjp1jTo2QyjBAyaCQ==}
+    engines: {node: '>=20.19.0'}
+    peerDependencies:
+      '@nestjs/common': ^12.1.0
+      '@nestjs/core': ^12.1.0
+      reflect-metadata: ^0.1.13 || ^0.2.0
 
   '@nestjs/testing@12.5.0':
     resolution: {integrity: sha512-4zppUy+q+dmqdQBm/Q9KyTDeq0hsa/we6E0VtSaT1Dnewo/FkbcczCrrtivuIWIuZ7KNJ0U8UGYCgozFZJ2+zQ==}
@@ -5575,6 +5586,12 @@ snapshots:
       prettier: 3.10.1
     transitivePeerDependencies:
       - chokidar
+
+  '@nestjs/storage@0.0.5(@nestjs/common@12.5.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@12.5.0)(reflect-metadata@0.2.2)':
+    dependencies:
+      '@nestjs/common': 12.5.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0)
+      '@nestjs/core': 12.5.0(@nestjs/common@12.5.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/platform-express@12.5.0)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      reflect-metadata: 0.2.2
 
   '@nestjs/testing@12.5.0(@nestjs/common@12.5.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@12.5.0)(@nestjs/platform-express@12.5.0)':
     dependencies:

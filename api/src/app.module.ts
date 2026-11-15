@@ -3,11 +3,13 @@ import { AuthenticationModule } from '@nestjs/authentication';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_PIPE } from '@nestjs/core';
 import { DrizzleModule } from '@nestjs/drizzle';
+import { StorageModule } from '@nestjs/storage';
 import { REFRESH_TOKEN_TTL } from '@terasandi/contracts';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { validateEnv } from './config/env.js';
 import type { Env } from './config/env.js';
 import { relations } from './db/relations.js';
+import { createStorageOptions } from './storage/storage.config.js';
 import { AuthModule } from './auth/auth.module.js';
 import { HealthModule } from './health/health.module.js';
 import { LoggerModule } from './logger/logger.module.js';
@@ -41,6 +43,10 @@ import { UsersModule } from './users/users.module.js';
         relations,
       }),
       inject: [ConfigService],
+    }),
+    StorageModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: createStorageOptions,
     }),
     LoggerModule,
     UsersModule,

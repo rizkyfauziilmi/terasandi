@@ -170,6 +170,33 @@ docker compose ps
 
 Refer to the installation documentation for additional configuration details.
 
+### Local development
+
+The API ships a Compose file with its Postgres and MinIO services:
+
+```bash
+docker compose -f api/docker-compose.yml up -d
+```
+
+`minio-init` runs once, waits for MinIO, then creates the private `terasandi-files` bucket and exits. Check it with `docker compose -f api/docker-compose.yml ps` and `docker compose -f api/docker-compose.yml logs minio-init`.
+
+The images are pinned releases of `pgsty/minio` and `pgsty/mc`, community builds of the MinIO server and client: MinIO no longer publishes images on Docker Hub or anonymous Quay. They keep MinIO's release tags, and the Compose file pins one so a rebuild cannot change the server under you.
+
+Copy `api/.env.example` to `api/.env` and fill the storage variables:
+
+| Variable | Development value | Notes |
+| --- | --- | --- |
+| `STORAGE_ENDPOINT` | `http://localhost:9000` | S3 API of MinIO |
+| `STORAGE_REGION` | `us-east-1` | MinIO ignores it, the SDK requires it |
+| `STORAGE_BUCKET` | `terasandi-files` | created by `minio-init` |
+| `STORAGE_ACCESS_KEY` | `terasandi` | in production, a restricted user, not root |
+| `STORAGE_SECRET_KEY` | `terasandi-dev-secret` | in production, a restricted user, not root |
+| `STORAGE_FORCE_PATH_STYLE` | `true` | required by MinIO; AWS S3 can use virtual-hosted style |
+
+The MinIO console is at [http://localhost:9001](http://localhost:9001), signed in with `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD`. The bucket is private: files are meant to be served by the API, never read directly from MinIO.
+
+For production, create a MinIO user limited to that bucket and use its credentials for `STORAGE_ACCESS_KEY` / `STORAGE_SECRET_KEY`; the root credentials are only for the container itself.
+
 ---
 
 ## 🌱 Philosophy

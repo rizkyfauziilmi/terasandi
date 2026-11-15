@@ -21,6 +21,12 @@ export const envSchema = z.object({
     .string()
     .min(32, 'JWT_SECRET must be at least 32 characters long'),
   ACCESS_TOKEN_TTL: duration.default('15m'),
+  STORAGE_ENDPOINT: z.url().default('http://localhost:9000'),
+  STORAGE_REGION: z.string().min(1).default('us-east-1'),
+  STORAGE_BUCKET: z.string().min(3).default('terasandi-files'),
+  STORAGE_ACCESS_KEY: z.string().min(1, 'STORAGE_ACCESS_KEY is required'),
+  STORAGE_SECRET_KEY: z.string().min(1, 'STORAGE_SECRET_KEY is required'),
+  STORAGE_FORCE_PATH_STYLE: z.stringbool().default(true),
   // Parsed by the logger with `filterLogLevels`, which accepts a level
   // (`warn`), a list (`warn,error`) or a threshold (`>=debug`).
   LOG_LEVEL: z.string().optional(),

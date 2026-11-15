@@ -3,6 +3,17 @@ import { envSchema, validateEnv } from './env.js';
 const valid = {
   DATABASE_URL: 'postgres://terasandi:terasandi@localhost:5432/terasandi',
   JWT_SECRET: 'a'.repeat(32),
+  STORAGE_ACCESS_KEY: 'terasandi',
+  STORAGE_SECRET_KEY: 'terasandi-dev-secret',
+};
+
+const storageDefaults = {
+  STORAGE_ENDPOINT: 'http://localhost:9000',
+  STORAGE_REGION: 'us-east-1',
+  STORAGE_BUCKET: 'terasandi-files',
+  STORAGE_ACCESS_KEY: valid.STORAGE_ACCESS_KEY,
+  STORAGE_SECRET_KEY: valid.STORAGE_SECRET_KEY,
+  STORAGE_FORCE_PATH_STYLE: true,
 };
 
 describe('envSchema', () => {
@@ -13,6 +24,7 @@ describe('envSchema', () => {
       DATABASE_URL: valid.DATABASE_URL,
       JWT_SECRET: valid.JWT_SECRET,
       ACCESS_TOKEN_TTL: '15m',
+      ...storageDefaults,
     });
   });
 
@@ -53,6 +65,68 @@ describe('envSchema', () => {
   });
 });
 
+describe('storage environment', () => {
+  it('accepts a custom bucket, region and endpoint', () => {
+    expect(
+      envSchema.parse({
+        ...valid,
+        STORAGE_ENDPOINT: 'https://s3.example.com',
+        STORAGE_REGION: 'eu-central-1',
+        STORAGE_BUCKET: 'my-files',
+      }),
+    ).toMatchObject({
+      STORAGE_ENDPOINT: 'https://s3.example.com',
+      STORAGE_REGION: 'eu-central-1',
+      STORAGE_BUCKET: 'my-files',
+    });
+  });
+
+  it('rejects a malformed STORAGE_ENDPOINT', () => {
+    expect(() =>
+      envSchema.parse({ ...valid, STORAGE_ENDPOINT: 'not a url' }),
+    ).toThrow(/STORAGE_ENDPOINT/);
+  });
+
+  it('rejects a bucket name shorter than three characters', () => {
+    expect(() =>
+      envSchema.parse({ ...valid, STORAGE_BUCKET: 'ab' }),
+    ).toThrow(/STORAGE_BUCKET/);
+  });
+
+  it('requires the access key', () => {
+    const { STORAGE_ACCESS_KEY: _, ...withoutAccessKey } = valid;
+
+    expect(() => envSchema.parse(withoutAccessKey)).toThrow(
+      /STORAGE_ACCESS_KEY/,
+    );
+  });
+
+  it('requires the secret key', () => {
+    const { STORAGE_SECRET_KEY: _, ...withoutSecretKey } = valid;
+
+    expect(() => envSchema.parse(withoutSecretKey)).toThrow(
+      /STORAGE_SECRET_KEY/,
+    );
+  });
+
+  it('parses STORAGE_FORCE_PATH_STYLE as a boolean', () => {
+    expect(
+      envSchema.parse({ ...valid, STORAGE_FORCE_PATH_STYLE: 'false' })
+        .STORAGE_FORCE_PATH_STYLE,
+    ).toBe(false);
+    expect(
+      envSchema.parse({ ...valid, STORAGE_FORCE_PATH_STYLE: 'true' })
+        .STORAGE_FORCE_PATH_STYLE,
+    ).toBe(true);
+  });
+
+  it('rejects an ambiguous STORAGE_FORCE_PATH_STYLE', () => {
+    expect(() =>
+      envSchema.parse({ ...valid, STORAGE_FORCE_PATH_STYLE: 'maybe' }),
+    ).toThrow(/STORAGE_FORCE_PATH_STYLE/);
+  });
+});
+
 describe('validateEnv', () => {
   it('returns the parsed environment', () => {
     expect(validateEnv(valid)).toEqual({
@@ -61,12 +135,13 @@ describe('validateEnv', () => {
       DATABASE_URL: valid.DATABASE_URL,
       JWT_SECRET: valid.JWT_SECRET,
       ACCESS_TOKEN_TTL: '15m',
+      ...storageDefaults,
     });
   });
 
   it('names the missing variables in the error', () => {
     expect(() => validateEnv({ NODE_ENV: 'production' })).toThrow(
-      /Invalid environment variables[\s\S]*DATABASE_URL[\s\S]*JWT_SECRET/,
+      /Invalid environment variables[\s\S]*DATABASE_URL[\s\S]*JWT_SECRET[\s\S]*STORAGE_ACCESS_KEY/,
     );
   });
 });
