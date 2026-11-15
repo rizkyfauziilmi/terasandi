@@ -15,4 +15,8 @@ describe('HealthService', () => {
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
+
+  it('reports ok', () => {
+    expect(service.check()).toEqual({ status: 'ok' });
+  });
 });

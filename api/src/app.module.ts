@@ -9,6 +9,7 @@ import type { Env } from './config/env.js';
 import { relations } from './db/relations.js';
 import { AuthModule } from './auth/auth.module.js';
 import { HealthModule } from './health/health.module.js';
+import { LoggerModule } from './logger/logger.module.js';
 import { UsersModule } from './users/users.module.js';
 
 @Module({
@@ -37,6 +38,7 @@ import { UsersModule } from './users/users.module.js';
       }),
       inject: [ConfigService],
     }),
+    LoggerModule,
     UsersModule,
     AuthModule,
     HealthModule,

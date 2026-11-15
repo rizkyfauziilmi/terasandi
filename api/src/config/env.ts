@@ -9,6 +9,9 @@ export const envSchema = z.object({
   JWT_SECRET: z
     .string()
     .min(32, 'JWT_SECRET must be at least 32 characters long'),
+  // Parsed by the logger with `filterLogLevels`, which accepts a level
+  // (`warn`), a list (`warn,error`) or a threshold (`>=debug`).
+  LOG_LEVEL: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

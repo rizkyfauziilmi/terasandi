@@ -1,21 +1,31 @@
 import { AuthenticationRegistry } from '@nestjs/authentication';
 import { Test, TestingModule } from '@nestjs/testing';
 import { vi } from 'vitest';
+import type { User } from '../db/schema.js';
 import { UsersService } from '../users/users.service.js';
 import { JwtAuth } from './jwt-auth.provider.js';
 
+const user: User = {
+  id: 'a40890cc-d300-412b-9e3e-b760003170eb',
+  username: 'rizky',
+  createdAt: new Date('2026-01-01T00:00:00.000Z'),
+  updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+};
+
 describe('JwtAuth', () => {
   let provider: JwtAuth;
+  let usersService: { findById: ReturnType<typeof vi.fn> };
+  let registry: { registerProvider: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
+    usersService = { findById: vi.fn() };
+    registry = { registerProvider: vi.fn() };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         JwtAuth,
-        { provide: UsersService, useValue: { findById: vi.fn() } },
-        {
-          provide: AuthenticationRegistry,
-          useValue: { registerProvider: vi.fn() },
-        },
+        { provide: UsersService, useValue: usersService },
+        { provide: AuthenticationRegistry, useValue: registry },
       ],
     }).compile();
 
@@ -24,5 +34,30 @@ describe('JwtAuth', () => {
 
   it('should be defined', () => {
     expect(provider).toBeDefined();
+  });
+
+  it('registers itself with the authentication registry', () => {
+    expect(registry.registerProvider).toHaveBeenCalledWith(provider);
+  });
+
+  it('returns the user matching the token subject', async () => {
+    usersService.findById.mockResolvedValue(user);
+
+    await expect(provider.validate({ sub: user.id })).resolves.toBe(user);
+    expect(usersService.findById).toHaveBeenCalledWith(user.id);
+  });
+
+  it('returns null when the subject no longer has a user', async () => {
+    usersService.findById.mockResolvedValue(undefined);
+
+    await expect(provider.validate({ sub: 'deleted-user' })).resolves.toBe(
+      null,
+    );
+    expect(usersService.findById).toHaveBeenCalledWith('deleted-user');
+  });
+
+  it('returns null without a query when the token has no subject', async () => {
+    await expect(provider.validate({})).resolves.toBe(null);
+    expect(usersService.findById).not.toHaveBeenCalled();
   });
 });

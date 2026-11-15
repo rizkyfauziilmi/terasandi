@@ -87,6 +87,42 @@ describe('CredentialsService', () => {
         service.register('rizky', 'password-12345'),
       ).rejects.toBeInstanceOf(ConflictException);
     });
+
+    it('maps a top-level unique violation to a conflict', async () => {
+      usersService.findByUsername.mockResolvedValue(undefined);
+      passwordHasher.hash.mockResolvedValue('hashed-password');
+      usersService.create.mockRejectedValue({ code: '23505' });
+
+      await expect(
+        service.register('rizky', 'password-12345'),
+      ).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it('rethrows an unrelated insert error unchanged', async () => {
+      const error = new Error('connection lost');
+      usersService.findByUsername.mockResolvedValue(undefined);
+      passwordHasher.hash.mockResolvedValue('hashed-password');
+      usersService.create.mockRejectedValue(error);
+
+      await expect(service.register('rizky', 'password-12345')).rejects.toBe(
+        error,
+      );
+    });
+
+    it('does not walk an arbitrarily deep cause chain', async () => {
+      // One level past the depth limit, so the code is never seen.
+      usersService.findByUsername.mockResolvedValue(undefined);
+      passwordHasher.hash.mockResolvedValue('hashed-password');
+      usersService.create.mockRejectedValue({
+        cause: {
+          cause: { cause: { cause: { code: '23505' } } },
+        },
+      });
+
+      await expect(
+        service.register('rizky', 'password-12345'),
+      ).rejects.not.toBeInstanceOf(ConflictException);
+    });
   });
 
   describe('verify', () => {

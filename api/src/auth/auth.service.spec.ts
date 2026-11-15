@@ -1,4 +1,4 @@
-import { ConflictException, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Logger, UnauthorizedException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TokenService } from '@nestjs/authentication';
 import { vi } from 'vitest';
@@ -27,8 +27,14 @@ describe('AuthService', () => {
     verify: ReturnType<typeof vi.fn>;
   };
   let tokenService: { issue: ReturnType<typeof vi.fn> };
+  let logSpy: ReturnType<typeof vi.spyOn>;
+  let warnSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(async () => {
+    // Keep the test output clean and let the logging tests inspect the calls.
+    logSpy = vi.spyOn(Logger.prototype, 'log').mockImplementation(() => {});
+    warnSpy = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
+
     usersService = { hasAnyUser: vi.fn() };
     credentialsService = { register: vi.fn(), verify: vi.fn() };
     tokenService = {
@@ -48,6 +54,10 @@ describe('AuthService', () => {
     }).compile();
 
     service = module.get<AuthService>(AuthService);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   describe('isOnboarding', () => {
@@ -117,6 +127,63 @@ describe('AuthService', () => {
 
       await expect(service.signIn(credentials)).rejects.toThrow(
         UnauthorizedException,
+      );
+    });
+  });
+
+  describe('logging', () => {
+    it('logs a successful onboarding without the password', async () => {
+      usersService.hasAnyUser.mockResolvedValue(false);
+      credentialsService.register.mockResolvedValue(user);
+
+      await service.onboarding(credentials);
+
+      expect(logSpy).toHaveBeenCalledWith('User onboarded', {
+        userId: user.id,
+        username: user.username,
+      });
+      expect(JSON.stringify(logSpy.mock.calls)).not.toContain(
+        credentials.password,
+      );
+    });
+
+    it('warns when onboarding is already complete', async () => {
+      usersService.hasAnyUser.mockResolvedValue(true);
+
+      await expect(service.onboarding(credentials)).rejects.toThrow(
+        ConflictException,
+      );
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        'Onboarding rejected: setup is already complete',
+      );
+    });
+
+    it('logs a successful sign-in without the password', async () => {
+      credentialsService.verify.mockResolvedValue(user);
+
+      await service.signIn(credentials);
+
+      expect(logSpy).toHaveBeenCalledWith('User signed in', {
+        userId: user.id,
+      });
+      expect(JSON.stringify(logSpy.mock.calls)).not.toContain(
+        credentials.password,
+      );
+    });
+
+    it('warns on a failed sign-in without the password', async () => {
+      credentialsService.verify.mockResolvedValue(null);
+
+      await expect(service.signIn(credentials)).rejects.toThrow(
+        UnauthorizedException,
+      );
+
+      expect(warnSpy).toHaveBeenCalledWith('Sign-in failed', {
+        username: credentials.username,
+      });
+      expect(JSON.stringify(warnSpy.mock.calls)).not.toContain(
+        credentials.password,
       );
     });
   });

@@ -8,5 +8,10 @@ export default defineConfig({
     globals: true,
     root: './',
     include: ['**/*.spec.ts'],
+    coverage: {
+      // The bootstrap wires the application and reads the environment; it has
+      // no logic worth a unit test, but it is type-checked by `nest build`.
+      exclude: ['src/main.ts'],
+    },
   },
 });

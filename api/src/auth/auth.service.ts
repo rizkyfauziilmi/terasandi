@@ -1,6 +1,7 @@
 import {
   ConflictException,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { CredentialsService } from './credentials.service.js';
@@ -11,6 +12,8 @@ import { AuthResponse } from './auth.types.js';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly credentialsService: CredentialsService,
     private readonly tokenService: TokenService,
@@ -25,6 +28,7 @@ export class AuthService {
   async onboarding(body: SignUpDto): Promise<AuthResponse> {
     // restrict register if user already created (onboarding done)
     if (!(await this.isOnboarding())) {
+      this.logger.warn('Onboarding rejected: setup is already complete');
       throw new ConflictException(
         'Registration is no longer available. Please contact the administrator.',
       );
@@ -41,6 +45,11 @@ export class AuthService {
       method: 'password',
     });
 
+    this.logger.log('User onboarded', {
+      userId: user.id,
+      username: user.username,
+    });
+
     return { user, ...tokens };
   }
 
@@ -51,12 +60,16 @@ export class AuthService {
     );
 
     if (!user) {
+      // The username is public input; the password never reaches the logger.
+      this.logger.warn('Sign-in failed', { username: body.username });
       throw new UnauthorizedException('Invalid username or password');
     }
 
     const tokens = await this.tokenService.issue(user.id, {
       method: 'password',
     });
+
+    this.logger.log('User signed in', { userId: user.id });
 
     return { user, ...tokens };
   }
