@@ -1,8 +1,6 @@
 import { z } from 'zod';
 
-// ! must sync with auth.schema.ts in web
-// TODO: use shared schema
-const username = z
+export const usernameSchema = z
   .string()
   .trim()
   .min(3, 'Username must be at least 3 characters')
@@ -12,7 +10,7 @@ const username = z
     'Username may only contain letters, numbers, and underscores',
   );
 
-const password = z
+export const passwordSchema = z
   .string()
   .min(8, 'Password must be at least 8 characters')
   .max(128, 'Password must be at most 128 characters')
@@ -23,11 +21,13 @@ const password = z
     'Password must contain at least one special character',
   );
 
+/** The body accepted by `POST /auth/onboarding`. */
 export const signUpSchema = z.object({
-  username,
-  password,
+  username: usernameSchema,
+  password: passwordSchema,
 });
 
+/** The body accepted by `POST /auth/sign-in`. */
 export const signInSchema = z.object({
   username: z.string().trim().min(1, 'Username is required'),
   password: z.string().min(1, 'Password is required'),

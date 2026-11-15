@@ -24,7 +24,8 @@ import {
 } from "@/components/ui/input-group";
 import { toast } from "@/components/ui/toast";
 import { signInAction } from "@/app/actions/auth";
-import { signInSchema, SignInSchema } from "@/schemas/auth.schema";
+import { signInSchema } from "@terasandi/contracts";
+import type { SignInDto } from "@terasandi/contracts";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { useState } from "react";
@@ -33,7 +34,7 @@ import { Controller, useForm } from "react-hook-form";
 export default function SignIn() {
   const [showPassword, setShowPassword] = useState<boolean>(false);
 
-  const form = useForm<SignInSchema>({
+  const form = useForm<SignInDto>({
     mode: "onChange",
     resolver: zodResolver(signInSchema),
     defaultValues: {
@@ -46,7 +47,7 @@ export default function SignIn() {
 
   const isDisabledButton = !isValid || isSubmitting;
 
-  async function onSubmit(data: SignInSchema) {
+  async function onSubmit(data: SignInDto) {
     const result = await signInAction(data);
 
     if (result?.error) {

@@ -6,7 +6,7 @@ import {
 import { CredentialsService } from './credentials.service.js';
 import { TokenService } from '@nestjs/authentication';
 import { UsersService } from '../users/users.service.js';
-import { SignInDto, SignUpDto } from './auth.schemas.js';
+import { SignInDto, SignUpDto } from '@terasandi/contracts';
 import { AuthResponse } from './auth.types.js';
 
 @Injectable()

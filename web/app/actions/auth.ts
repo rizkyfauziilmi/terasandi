@@ -3,15 +3,17 @@
 import { redirect } from "next/navigation";
 import { AuthApiError, postAuth } from "@/lib/api";
 import { clearAccessToken, setAccessToken } from "@/lib/session";
-import { signInSchema, signUpSchema } from "@/schemas/auth.schema";
-import type { SignInSchema, SignUpSchema } from "@/schemas/auth.schema";
+import { signInSchema } from "@terasandi/contracts";
+import type { SignInDto } from "@terasandi/contracts";
+import { signUpFormSchema } from "@/lib/auth-form-schema";
+import type { SignUpForm } from "@/lib/auth-form-schema";
 
 export type AuthActionState = { error: string } | undefined;
 
 export async function onboardingAction(
-  input: SignUpSchema,
+  input: SignUpForm,
 ): Promise<AuthActionState> {
-  const parsed = signUpSchema.safeParse(input);
+  const parsed = signUpFormSchema.safeParse(input);
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
@@ -22,7 +24,7 @@ export async function onboardingAction(
 }
 
 export async function signInAction(
-  input: SignInSchema,
+  input: SignInDto,
 ): Promise<AuthActionState> {
   const parsed = signInSchema.safeParse(input);
 

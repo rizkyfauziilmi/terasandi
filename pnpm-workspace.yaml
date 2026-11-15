@@ -1,5 +1,13 @@
+packages:
+  - api
+  - web
+  - packages/*
+
 allowBuilds:
   '@nestjs/authentication': true
+  sharp: false
+  unrs-resolver: false
+
 permissions:
   '@nestjs/authentication':
     skills: true

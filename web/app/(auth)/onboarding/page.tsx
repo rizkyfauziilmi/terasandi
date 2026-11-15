@@ -24,7 +24,8 @@ import {
 } from "@/components/ui/input-group";
 import { toast } from "@/components/ui/toast";
 import { onboardingAction } from "@/app/actions/auth";
-import { signUpSchema, SignUpSchema } from "@/schemas/auth.schema";
+import { signUpFormSchema } from "@/lib/auth-form-schema";
+import type { SignUpForm } from "@/lib/auth-form-schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { useState } from "react";
@@ -41,8 +42,8 @@ export default function Onboarding() {
     confirmPassword: false,
   });
 
-  const form = useForm<SignUpSchema>({
-    resolver: zodResolver(signUpSchema),
+  const form = useForm<SignUpForm>({
+    resolver: zodResolver(signUpFormSchema),
     mode: "onChange",
     defaultValues: {
       username: "",
@@ -55,7 +56,7 @@ export default function Onboarding() {
 
   const isDisabledButton = !isValid || isSubmitting;
 
-  async function onSubmit(data: SignUpSchema) {
+  async function onSubmit(data: SignUpForm) {
     const result = await onboardingAction(data);
 
     if (result?.error) {

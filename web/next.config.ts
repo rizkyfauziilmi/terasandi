@@ -1,3 +1,4 @@
+import path from "node:path";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
@@ -8,6 +9,8 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {
+    // The workspace root, so Turbopack can resolve `packages/contracts`.
+    root: path.join(__dirname, ".."),
     rules: {
       "*.css": {
         loaders: ["@tailwindcss/turbopack"],

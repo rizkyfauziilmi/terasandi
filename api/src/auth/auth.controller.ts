@@ -1,7 +1,7 @@
 import { Body, Controller, Get, HttpCode, Post } from '@nestjs/common';
 import { Public } from '@nestjs/authentication';
-import { signInSchema, signUpSchema } from './auth.schemas.js';
-import type { SignInDto, SignUpDto } from './auth.schemas.js';
+import { signInSchema, signUpSchema } from '@terasandi/contracts';
+import type { SignInDto, SignUpDto } from '@terasandi/contracts';
 import type { AuthResponse } from './auth.types.js';
 import { AuthService } from './auth.service.js';
 
