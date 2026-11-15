@@ -1,9 +1,13 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { AuthApiError, postAuth } from "@/lib/api";
+import { AuthApiError, postAuth, revokeSession } from "@/lib/api";
 import type { AuthPath } from "@/lib/api";
-import { clearAccessToken, setAccessToken } from "@/lib/session";
+import {
+  clearAuthCookies,
+  getRefreshToken,
+  setAuthCookies,
+} from "@/lib/session";
 import { signInSchema } from "@terasandi/contracts";
 import type { SignInDto } from "@terasandi/contracts";
 import { signUpFormSchema } from "@/lib/auth-form-schema";
@@ -37,7 +41,13 @@ export async function signInAction(
 }
 
 export async function signOutAction(): Promise<void> {
-  await clearAccessToken();
+  const refreshToken = await getRefreshToken();
+
+  if (refreshToken) {
+    await revokeSession(refreshToken);
+  }
+
+  await clearAuthCookies();
   redirect("/sign-in");
 }
 
@@ -58,6 +68,6 @@ async function authenticate(
     };
   }
 
-  await setAccessToken(response.accessToken, response.expiresIn);
+  await setAuthCookies(response);
   redirect("/");
 }

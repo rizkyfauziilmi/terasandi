@@ -1,4 +1,9 @@
-import type { AuthResponse, AuthUser, SignInDto } from "@terasandi/contracts";
+import type {
+  AuthResponse,
+  AuthTokens,
+  AuthUser,
+  SignInDto,
+} from "@terasandi/contracts";
 
 /** The two endpoints that issue a session. */
 export type AuthPath = "/auth/onboarding" | "/auth/sign-in";
@@ -14,6 +19,9 @@ export class AuthApiError extends Error {
 }
 
 const API_URL = process.env.API_URL ?? "http://localhost:3001";
+
+const UNREACHABLE =
+  "Unable to reach the server. Please try again in a moment.";
 
 /** Whether the API still needs its first user. `null` when it can't be reached. */
 export async function getIsOnboarding(): Promise<boolean | null> {
@@ -32,30 +40,25 @@ export async function getIsOnboarding(): Promise<boolean | null> {
   }
 }
 
-export async function postAuth(
+export function postAuth(
   path: AuthPath,
   credentials: SignInDto,
 ): Promise<AuthResponse> {
-  let response: Response;
+  return postJson<AuthResponse>(path, credentials);
+}
 
+/** Exchanges a refresh token for its successor. */
+export function refreshSession(refreshToken: string): Promise<AuthTokens> {
+  return postJson<AuthTokens>("/auth/refresh", { refreshToken });
+}
+
+/** Revokes the token family server-side. Best effort: local cookies go anyway. */
+export async function revokeSession(refreshToken: string): Promise<void> {
   try {
-    response = await fetch(`${API_URL}${path}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(credentials),
-    });
+    await postJson<void>("/auth/sign-out", { refreshToken });
   } catch {
-    throw new AuthApiError(
-      0,
-      "Unable to reach the server. Please try again in a moment.",
-    );
+    // The session is over locally even if the API can't be reached.
   }
-
-  if (!response.ok) {
-    throw new AuthApiError(response.status, await readErrorMessage(response));
-  }
-
-  return (await response.json()) as AuthResponse;
 }
 
 export async function fetchCurrentUser(
@@ -75,6 +78,30 @@ export async function fetchCurrentUser(
   } catch {
     return null;
   }
+}
+
+async function postJson<T>(path: string, body: unknown): Promise<T> {
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    throw new AuthApiError(0, UNREACHABLE);
+  }
+
+  if (!response.ok) {
+    throw new AuthApiError(response.status, await readErrorMessage(response));
+  }
+
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  return (await response.json()) as T;
 }
 
 /** Nest errors look like `{ message, error, statusCode }`. */

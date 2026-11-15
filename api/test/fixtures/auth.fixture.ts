@@ -22,4 +22,5 @@ export const testCredentials = {
 export const testTokens = {
   accessToken: 'token-123',
   expiresIn: 900,
+  refreshToken: 'refresh-123',
 };

@@ -10,6 +10,5 @@ export type AuthResponse = AuthResponseEnvelope<User>;
 declare module '@nestjs/authentication' {
   interface AuthenticationTypes {
     user: User;
-    refreshTokens: false;
   }
 }

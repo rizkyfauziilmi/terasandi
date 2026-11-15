@@ -14,6 +14,8 @@ describe('AuthController', () => {
     isOnboarding: ReturnType<typeof vi.fn>;
     onboarding: ReturnType<typeof vi.fn>;
     signIn: ReturnType<typeof vi.fn>;
+    refresh: ReturnType<typeof vi.fn>;
+    signOut: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
@@ -21,6 +23,8 @@ describe('AuthController', () => {
       isOnboarding: vi.fn(),
       onboarding: vi.fn(),
       signIn: vi.fn(),
+      refresh: vi.fn(),
+      signOut: vi.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -60,6 +64,26 @@ describe('AuthController', () => {
 
       expect(authService.signIn).toHaveBeenCalledWith(testCredentials);
       expect(result).toEqual(session);
+    });
+  });
+
+  describe('refresh', () => {
+    it('exchanges the refresh token for a new pair', async () => {
+      const body = { refreshToken: testTokens.refreshToken };
+      authService.refresh.mockResolvedValue(testTokens);
+
+      await expect(controller.refresh(body)).resolves.toEqual(testTokens);
+      expect(authService.refresh).toHaveBeenCalledWith(body.refreshToken);
+    });
+  });
+
+  describe('signOut', () => {
+    it('revokes the token family', async () => {
+      const body = { refreshToken: testTokens.refreshToken };
+
+      await controller.signOut(body);
+
+      expect(authService.signOut).toHaveBeenCalledWith(body.refreshToken);
     });
   });
 });

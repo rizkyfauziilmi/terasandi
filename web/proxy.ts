@@ -1,28 +1,44 @@
+import type { AuthTokens } from "@terasandi/contracts";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getIsOnboarding } from "@/lib/api";
-import { ACCESS_TOKEN_COOKIE } from "@/lib/auth-cookie";
+import {
+  ACCESS_TOKEN_COOKIE,
+  REFRESH_TOKEN_COOKIE,
+  accessTokenCookieOptions,
+  refreshTokenCookieOptions,
+} from "@/lib/auth-cookie";
+import { refreshOnce } from "@/lib/refresh";
 
 const ONBOARDING_PATH = "/onboarding";
 const SIGN_IN_PATH = "/sign-in";
 
 /**
- * Optimistic routing guard. The token in the cookie is only checked for
- * presence here; the API still validates it on every request.
+ * Optimistic routing guard. The API still validates the token on every
+ * request; this only decides where the browser may go and rotates an expired
+ * access token before the page renders.
  */
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const hasToken = request.cookies.has(ACCESS_TOKEN_COOKIE);
+  const accessToken = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value;
+  const refreshToken = request.cookies.get(REFRESH_TOKEN_COOKIE)?.value;
   const isOnboardingPage = pathname === ONBOARDING_PATH;
   const isSignInPage = pathname === SIGN_IN_PATH;
 
+  // The access cookie expires with the token, so its absence is the signal to
+  // exchange the refresh token before rendering.
+  const tokens =
+    !accessToken && refreshToken ? await refreshOnce(refreshToken) : null;
+  const revoked = !accessToken && Boolean(refreshToken) && !tokens;
+  const hasSession = Boolean(accessToken || tokens);
+
   // Signed in: never show onboarding or sign-in again.
-  if (hasToken) {
+  if (hasSession) {
     if (isOnboardingPage || isSignInPage) {
-      return NextResponse.redirect(new URL("/", request.url));
+      return redirectTo(new URL("/", request.url), tokens, revoked);
     }
 
-    return NextResponse.next();
+    return passThrough(request, tokens, revoked);
   }
 
   const isOnboarding = await getIsOnboarding();
@@ -30,20 +46,96 @@ export async function proxy(request: NextRequest) {
   // The onboarding page is only reachable while the API has no users yet.
   if (isOnboardingPage) {
     return isOnboarding === false
-      ? NextResponse.redirect(new URL(SIGN_IN_PATH, request.url))
-      : NextResponse.next();
+      ? redirectTo(new URL(SIGN_IN_PATH, request.url), tokens, revoked)
+      : passThrough(request, tokens, revoked);
   }
 
   // Sign-in is only reachable once onboarding is done.
   if (isSignInPage) {
     return isOnboarding === true
-      ? NextResponse.redirect(new URL(ONBOARDING_PATH, request.url))
-      : NextResponse.next();
+      ? redirectTo(new URL(ONBOARDING_PATH, request.url), tokens, revoked)
+      : passThrough(request, tokens, revoked);
   }
 
-  return NextResponse.redirect(
+  return redirectTo(
     new URL(isOnboarding === true ? ONBOARDING_PATH : SIGN_IN_PATH, request.url),
+    tokens,
+    revoked,
   );
+}
+
+function passThrough(
+  request: NextRequest,
+  tokens: AuthTokens | null,
+  revoked: boolean,
+) {
+  if (!tokens) {
+    const response = NextResponse.next();
+    if (revoked) {
+      clearCookies(response);
+    }
+    return response;
+  }
+
+  // The render must see the new access token, not the expired one the browser
+  // sent, so the forwarded Cookie header is rebuilt.
+  const headers = new Headers(request.headers);
+  headers.set("cookie", cookieHeader(request, tokens));
+
+  const response = NextResponse.next({ request: { headers } });
+  attachCookies(response, tokens);
+  return response;
+}
+
+function redirectTo(
+  url: URL,
+  tokens: AuthTokens | null,
+  revoked: boolean,
+) {
+  const response = NextResponse.redirect(url);
+  attachCookies(response, tokens);
+
+  if (revoked) {
+    clearCookies(response);
+  }
+
+  return response;
+}
+
+function attachCookies(response: NextResponse, tokens: AuthTokens | null) {
+  if (!tokens) {
+    return;
+  }
+
+  response.cookies.set(
+    ACCESS_TOKEN_COOKIE,
+    tokens.accessToken,
+    accessTokenCookieOptions(tokens.expiresIn),
+  );
+  response.cookies.set(
+    REFRESH_TOKEN_COOKIE,
+    tokens.refreshToken,
+    refreshTokenCookieOptions(),
+  );
+}
+
+function clearCookies(response: NextResponse) {
+  response.cookies.delete(ACCESS_TOKEN_COOKIE);
+  response.cookies.delete(REFRESH_TOKEN_COOKIE);
+}
+
+function cookieHeader(request: NextRequest, tokens: AuthTokens) {
+  const replaced = new Set([ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE]);
+
+  return request.cookies
+    .getAll()
+    .filter((cookie) => !replaced.has(cookie.name))
+    .map((cookie) => `${cookie.name}=${cookie.value}`)
+    .concat(
+      `${ACCESS_TOKEN_COOKIE}=${tokens.accessToken}`,
+      `${REFRESH_TOKEN_COOKIE}=${tokens.refreshToken}`,
+    )
+    .join("; ");
 }
 
 export const config = {

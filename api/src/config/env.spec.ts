@@ -12,11 +12,24 @@ describe('envSchema', () => {
       PORT: 3001,
       DATABASE_URL: valid.DATABASE_URL,
       JWT_SECRET: valid.JWT_SECRET,
+      ACCESS_TOKEN_TTL: '15m',
     });
   });
 
   it('coerces PORT to a number', () => {
     expect(envSchema.parse({ ...valid, PORT: '4000' }).PORT).toBe(4000);
+  });
+
+  it('accepts a custom access-token lifetime', () => {
+    expect(
+      envSchema.parse({ ...valid, ACCESS_TOKEN_TTL: '30s' }).ACCESS_TOKEN_TTL,
+    ).toBe('30s');
+  });
+
+  it('rejects a malformed access-token lifetime', () => {
+    expect(() =>
+      envSchema.parse({ ...valid, ACCESS_TOKEN_TTL: '15 minutes' }),
+    ).toThrow(/ACCESS_TOKEN_TTL/);
   });
 
   it('rejects a non-numeric PORT', () => {
@@ -47,6 +60,7 @@ describe('validateEnv', () => {
       PORT: 3001,
       DATABASE_URL: valid.DATABASE_URL,
       JWT_SECRET: valid.JWT_SECRET,
+      ACCESS_TOKEN_TTL: '15m',
     });
   });
 

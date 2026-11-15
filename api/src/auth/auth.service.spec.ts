@@ -1,6 +1,6 @@
 import { ConflictException, Logger, UnauthorizedException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { TokenService } from '@nestjs/authentication';
+import { TokenService, RefreshTokenError } from '@nestjs/authentication';
 import { vi } from 'vitest';
 import {
   testCredentials as credentials,
@@ -18,19 +18,27 @@ describe('AuthService', () => {
     register: ReturnType<typeof vi.fn>;
     verify: ReturnType<typeof vi.fn>;
   };
-  let tokenService: { issue: ReturnType<typeof vi.fn> };
+  let tokenService: {
+    issue: ReturnType<typeof vi.fn>;
+    refresh: ReturnType<typeof vi.fn>;
+    revoke: ReturnType<typeof vi.fn>;
+  };
   let logSpy: ReturnType<typeof vi.spyOn>;
   let warnSpy: ReturnType<typeof vi.spyOn>;
+  let debugSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(async () => {
     // Keep the test output clean and let the logging tests inspect the calls.
     logSpy = vi.spyOn(Logger.prototype, 'log').mockImplementation(() => {});
     warnSpy = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
+    debugSpy = vi.spyOn(Logger.prototype, 'debug').mockImplementation(() => {});
 
     usersService = { hasAnyUser: vi.fn() };
     credentialsService = { register: vi.fn(), verify: vi.fn() };
     tokenService = {
       issue: vi.fn().mockResolvedValue(testTokens),
+      refresh: vi.fn(),
+      revoke: vi.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -109,6 +117,50 @@ describe('AuthService', () => {
       await expect(service.signIn(credentials)).rejects.toThrow(
         UnauthorizedException,
       );
+    });
+  });
+
+  describe('refresh', () => {
+    it('returns the rotated pair and logs the rotation', async () => {
+      tokenService.refresh.mockResolvedValue(testTokens);
+
+      await expect(service.refresh(testTokens.refreshToken)).resolves.toEqual(
+        testTokens,
+      );
+      expect(tokenService.refresh).toHaveBeenCalledWith(
+        testTokens.refreshToken,
+      );
+      expect(debugSpy).toHaveBeenCalledWith('Token refreshed');
+      expect(JSON.stringify(debugSpy.mock.calls)).not.toContain(
+        testTokens.refreshToken,
+      );
+    });
+
+    it('warns about the reason and rethrows when a token cannot be refreshed', async () => {
+      const error = new RefreshTokenError('reused');
+      tokenService.refresh.mockRejectedValue(error);
+
+      await expect(service.refresh('stale-token')).rejects.toBe(error);
+      expect(warnSpy).toHaveBeenCalledWith('Token refresh failed', {
+        reason: 'reused',
+      });
+      expect(debugSpy).not.toHaveBeenCalled();
+      expect(JSON.stringify(warnSpy.mock.calls)).not.toContain('stale-token');
+    });
+  });
+
+  describe('signOut', () => {
+    it('revokes the family and logs the outcome', async () => {
+      tokenService.revoke.mockResolvedValue(true);
+
+      await service.signOut(testTokens.refreshToken);
+
+      expect(tokenService.revoke).toHaveBeenCalledWith(
+        testTokens.refreshToken,
+      );
+      expect(logSpy).toHaveBeenCalledWith('User signed out', {
+        revoked: true,
+      });
     });
   });
 

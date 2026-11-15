@@ -1,7 +1,16 @@
 import { Body, Controller, Get, HttpCode, Post } from '@nestjs/common';
 import { Public } from '@nestjs/authentication';
-import { signInSchema, signUpSchema } from '@terasandi/contracts';
-import type { SignInDto, SignUpDto } from '@terasandi/contracts';
+import {
+  refreshTokenSchema,
+  signInSchema,
+  signUpSchema,
+} from '@terasandi/contracts';
+import type {
+  AuthTokens,
+  RefreshTokenDto,
+  SignInDto,
+  SignUpDto,
+} from '@terasandi/contracts';
 import type { AuthResponse } from './auth.types.js';
 import { AuthService } from './auth.service.js';
 
@@ -28,5 +37,21 @@ export class AuthController {
     @Body({ schema: signInSchema }) body: SignInDto,
   ): Promise<AuthResponse> {
     return this.authService.signIn(body);
+  }
+
+  @Post('refresh')
+  @HttpCode(200)
+  async refresh(
+    @Body({ schema: refreshTokenSchema }) body: RefreshTokenDto,
+  ): Promise<AuthTokens> {
+    return this.authService.refresh(body.refreshToken);
+  }
+
+  @Post('sign-out')
+  @HttpCode(204)
+  async signOut(
+    @Body({ schema: refreshTokenSchema }) body: RefreshTokenDto,
+  ): Promise<void> {
+    await this.authService.signOut(body.refreshToken);
   }
 }

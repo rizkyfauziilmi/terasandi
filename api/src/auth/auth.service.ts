@@ -4,10 +4,13 @@ import {
   Logger,
   UnauthorizedException,
 } from '@nestjs/common';
+import {
+  RefreshTokenError,
+  TokenService,
+} from '@nestjs/authentication';
 import { CredentialsService } from './credentials.service.js';
-import { TokenService } from '@nestjs/authentication';
 import { UsersService } from '../users/users.service.js';
-import { SignInDto, SignUpDto } from '@terasandi/contracts';
+import type { AuthTokens, SignInDto, SignUpDto } from '@terasandi/contracts';
 import type { User } from '../db/schema.js';
 import { AuthResponse } from './auth.types.js';
 
@@ -67,6 +70,32 @@ export class AuthService {
     this.logger.log('User signed in', { userId: user.id });
 
     return response;
+  }
+
+  /** Exchanges a refresh token for its successor, and a new access token. */
+  async refresh(refreshToken: string): Promise<AuthTokens> {
+    try {
+      const tokens = await this.tokenService.refresh(refreshToken);
+      // The pair carries no identity, so the reused-token event is where a
+      // user is named. This line records the rotation itself.
+      this.logger.debug('Token refreshed');
+
+      return tokens;
+    } catch (error) {
+      if (error instanceof RefreshTokenError) {
+        // No token value in the log: unknown, expired and reused all look
+        // the same to the caller, but the reason helps when debugging.
+        this.logger.warn('Token refresh failed', { reason: error.reason });
+      }
+
+      throw error;
+    }
+  }
+
+  /** Revokes the token family this device signed in with. */
+  async signOut(refreshToken: string): Promise<void> {
+    const revoked = await this.tokenService.revoke(refreshToken);
+    this.logger.log('User signed out', { revoked });
   }
 
   /**

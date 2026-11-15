@@ -3,6 +3,7 @@ import { AuthenticationModule } from '@nestjs/authentication';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_PIPE } from '@nestjs/core';
 import { DrizzleModule } from '@nestjs/drizzle';
+import { REFRESH_TOKEN_TTL } from '@terasandi/contracts';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { validateEnv } from './config/env.js';
 import type { Env } from './config/env.js';
@@ -24,9 +25,12 @@ import { UsersModule } from './users/users.module.js';
           key: configService.get('JWT_SECRET', { infer: true }),
           issuer: 'terasandi',
           audience: 'terasandi-web',
-          ttl: '15m',
+          ttl: configService.get('ACCESS_TOKEN_TTL', { infer: true }),
         },
-        refreshToken: false,
+        refreshToken: {
+          ttl: REFRESH_TOKEN_TTL,
+          absoluteTtl: '90d',
+        },
       }),
       inject: [ConfigService],
     }),
