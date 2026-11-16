@@ -1,14 +1,14 @@
 "use client";
 
 import { onboardingAction } from "@/app/actions/auth";
-import { AuthCard } from "@/components/auth/auth-card";
-import { PasswordField } from "@/components/auth/password-field";
-import { TextField } from "@/components/auth/text-field";
+import { AuthCard } from "@/app/(auth)/_components/auth-card";
 import type { SignUpForm } from "@/lib/auth-form-schema";
 import { signUpFormSchema } from "@/lib/auth-form-schema";
 import { notifyError } from "@/lib/notify";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { PasswordField } from "../_components/password-field";
+import { TextField } from "../_components/text-field";
 
 export default function Onboarding() {
   const form = useForm<SignUpForm>({

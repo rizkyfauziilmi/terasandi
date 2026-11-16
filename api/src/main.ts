@@ -19,6 +19,16 @@ async function bootstrap() {
   app.use(requestLoggingMiddleware(new Logger('HTTP')));
   app.enableShutdownHooks();
 
+  // Behind a reverse proxy the client address arrives in `X-Forwarded-For`.
+  // Without this every request looks like it came from the proxy, and they
+  // all share one rate-limit bucket.
+  if (config.getOrThrow('TRUST_PROXY', { infer: true })) {
+    const adapter = app.getHttpAdapter().getInstance() as {
+      set(setting: string, value: unknown): void;
+    };
+    adapter.set('trust proxy', 1);
+  }
+
   const port = config.getOrThrow('PORT', { infer: true });
   const env = config.getOrThrow('NODE_ENV', { infer: true });
 

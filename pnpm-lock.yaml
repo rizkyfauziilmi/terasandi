@@ -171,6 +171,9 @@ importers:
       '@nestjs/authentication':
         specifier: ^0.1.5
         version: 0.1.6(@nestjs/common@12.5.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@12.5.0)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/authorization':
+        specifier: ^0.1.4
+        version: 0.1.4(@nestjs/authentication@0.1.6(@nestjs/common@12.5.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@12.5.0)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/common@12.5.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@12.5.0)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@nestjs/common':
         specifier: ^12.0.1
         version: 12.5.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0)
@@ -189,6 +192,9 @@ importers:
       '@nestjs/storage':
         specifier: ^0.0.5
         version: 0.0.5(@nestjs/common@12.5.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@12.5.0)(reflect-metadata@0.2.2)
+      '@nestjs/throttler':
+        specifier: ^6.7.1
+        version: 6.7.1(@nestjs/common@12.5.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@12.5.0)(reflect-metadata@0.2.2)
       '@terasandi/contracts':
         specifier: workspace:*
         version: link:../packages/contracts
@@ -1069,6 +1075,25 @@ packages:
       '@nestjs/websockets':
         optional: true
 
+  '@nestjs/authorization@0.1.4':
+    resolution: {integrity: sha512-rA79qYNut3PoS8/+fQkMXhN/o0HApNIw3MyhPDqRoBOUqbKfoDNM2QjLMSeuuLFKPpx92/NIlS3aKab9zgXgNA==}
+    engines: {node: '>=20.19.0'}
+    peerDependencies:
+      '@nestjs/authentication': '>=0.1.0'
+      '@nestjs/common': ^12.0.0
+      '@nestjs/core': ^12.0.0
+      '@nestjs/microservices': ^12.0.0
+      '@nestjs/websockets': ^12.0.0
+      reflect-metadata: ^0.1.13 || ^0.2.0
+      rxjs: ^7.1.0
+    peerDependenciesMeta:
+      '@nestjs/authentication':
+        optional: true
+      '@nestjs/microservices':
+        optional: true
+      '@nestjs/websockets':
+        optional: true
+
   '@nestjs/cli@12.0.13':
     resolution: {integrity: sha512-dfb9zbM4VRUQnkjt0IyhYWxiScDq/4j8m6Y5f6PKvg6LK47XbzBeWKCBdqVFQV85uAHdJiMa8nyemAu0xvujRQ==}
     engines: {node: '>= 20.11'}
@@ -1188,6 +1213,14 @@ packages:
         optional: true
       '@nestjs/platform-express':
         optional: true
+
+  '@nestjs/throttler@6.7.1':
+    resolution: {integrity: sha512-gAyY1AkU+cSK5DCjFOB43xax9oakameH4xZa9kAgqBqSBQZgmv3DZylLV8KyZNzOGhceL3kDVtby+CF8VAdmEA==}
+    engines: {node: ^20.19.0 || ^22.12.0 || >=24.0.0}
+    peerDependencies:
+      '@nestjs/common': ^7.0.0 || ^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0 || ^12.0.0
+      '@nestjs/core': ^7.0.0 || ^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0 || ^12.0.0
+      reflect-metadata: ^0.1.13 || ^0.2.0
 
   '@next/env@16.4.6':
     resolution: {integrity: sha512-SunBjJ6t+oBtecS3dTjdVuMhUogP5wD/vrGL5EVuQYM1iS4O5ilL51HkiJ3sPjMzRHiCChvr4dbaSJbR7F3lxA==}
@@ -5488,6 +5521,15 @@ snapshots:
       reflect-metadata: 0.2.2
       rxjs: 7.8.2
 
+  '@nestjs/authorization@0.1.4(@nestjs/authentication@0.1.6(@nestjs/common@12.5.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@12.5.0)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/common@12.5.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@12.5.0)(reflect-metadata@0.2.2)(rxjs@7.8.2)':
+    dependencies:
+      '@nestjs/common': 12.5.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0)
+      '@nestjs/core': 12.5.0(@nestjs/common@12.5.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/platform-express@12.5.0)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      reflect-metadata: 0.2.2
+      rxjs: 7.8.2
+    optionalDependencies:
+      '@nestjs/authentication': 0.1.6(@nestjs/common@12.5.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@12.5.0)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+
   '@nestjs/cli@12.0.13(@types/node@24.19.2)(prettier@3.10.1)':
     dependencies:
       '@angular-devkit/core': 22.2.6(chokidar@5.0.0)
@@ -5600,6 +5642,12 @@ snapshots:
       tslib: 2.9.1
     optionalDependencies:
       '@nestjs/platform-express': 12.5.0(@nestjs/common@12.5.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@12.5.0)(rxjs@7.8.2)(supports-color@7.2.0)
+
+  '@nestjs/throttler@6.7.1(@nestjs/common@12.5.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@12.5.0)(reflect-metadata@0.2.2)':
+    dependencies:
+      '@nestjs/common': 12.5.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0)
+      '@nestjs/core': 12.5.0(@nestjs/common@12.5.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/platform-express@12.5.0)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      reflect-metadata: 0.2.2
 
   '@next/env@16.4.6': {}
 

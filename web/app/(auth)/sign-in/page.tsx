@@ -1,14 +1,14 @@
 "use client";
 
 import { signInAction } from "@/app/actions/auth";
-import { AuthCard } from "@/components/auth/auth-card";
-import { PasswordField } from "@/components/auth/password-field";
-import { TextField } from "@/components/auth/text-field";
+import { AuthCard } from "@/app/(auth)/_components/auth-card";
 import { notifyError } from "@/lib/notify";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signInSchema } from "@terasandi/contracts";
 import type { SignInDto } from "@terasandi/contracts";
 import { useForm } from "react-hook-form";
+import { TextField } from "../_components/text-field";
+import { PasswordField } from "../_components/password-field";
 
 export default function SignIn() {
   const form = useForm<SignInDto>({

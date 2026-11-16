@@ -1,5 +1,4 @@
 import { PasswordHasher } from '@nestjs/authentication';
-import { ConflictException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { vi } from 'vitest';
 import { testUser, testUserRow } from '../../test/fixtures/auth.fixture.js';
@@ -15,8 +14,6 @@ const storedCredentials = {
 describe('CredentialsService', () => {
   let service: CredentialsService;
   let usersService: {
-    findByUsername: ReturnType<typeof vi.fn>;
-    create: ReturnType<typeof vi.fn>;
     findCredentials: ReturnType<typeof vi.fn>;
     updatePasswordHash: ReturnType<typeof vi.fn>;
   };
@@ -28,8 +25,6 @@ describe('CredentialsService', () => {
 
   beforeEach(async () => {
     usersService = {
-      findByUsername: vi.fn(),
-      create: vi.fn(),
       findCredentials: vi.fn(),
       updatePasswordHash: vi.fn(),
     };
@@ -48,80 +43,6 @@ describe('CredentialsService', () => {
     }).compile();
 
     service = module.get<CredentialsService>(CredentialsService);
-  });
-
-  describe('register', () => {
-    it('hashes the password and creates the user', async () => {
-      usersService.findByUsername.mockResolvedValue(undefined);
-      passwordHasher.hash.mockResolvedValue('hashed-password');
-      usersService.create.mockResolvedValue(testUser);
-
-      await expect(
-        service.register(testUser.username, password),
-      ).resolves.toBe(testUser);
-      expect(passwordHasher.hash).toHaveBeenCalledWith(password);
-      expect(usersService.create).toHaveBeenCalledWith({
-        username: testUser.username,
-        passwordHash: 'hashed-password',
-      });
-    });
-
-    it('rejects a username that is already taken', async () => {
-      usersService.findByUsername.mockResolvedValue(testUser);
-
-      await expect(
-        service.register(testUser.username, password),
-      ).rejects.toBeInstanceOf(ConflictException);
-      expect(passwordHasher.hash).not.toHaveBeenCalled();
-    });
-
-    it('maps a unique violation raised during the insert to a conflict', async () => {
-      usersService.findByUsername.mockResolvedValue(undefined);
-      passwordHasher.hash.mockResolvedValue('hashed-password');
-      usersService.create.mockRejectedValue({
-        cause: { code: '23505' },
-      });
-
-      await expect(
-        service.register(testUser.username, password),
-      ).rejects.toBeInstanceOf(ConflictException);
-    });
-
-    it('maps a top-level unique violation to a conflict', async () => {
-      usersService.findByUsername.mockResolvedValue(undefined);
-      passwordHasher.hash.mockResolvedValue('hashed-password');
-      usersService.create.mockRejectedValue({ code: '23505' });
-
-      await expect(
-        service.register(testUser.username, password),
-      ).rejects.toBeInstanceOf(ConflictException);
-    });
-
-    it('rethrows an unrelated insert error unchanged', async () => {
-      const error = new Error('connection lost');
-      usersService.findByUsername.mockResolvedValue(undefined);
-      passwordHasher.hash.mockResolvedValue('hashed-password');
-      usersService.create.mockRejectedValue(error);
-
-      await expect(service.register(testUser.username, password)).rejects.toBe(
-        error,
-      );
-    });
-
-    it('does not walk an arbitrarily deep cause chain', async () => {
-      // One level past the depth limit, so the code is never seen.
-      usersService.findByUsername.mockResolvedValue(undefined);
-      passwordHasher.hash.mockResolvedValue('hashed-password');
-      usersService.create.mockRejectedValue({
-        cause: {
-          cause: { cause: { cause: { code: '23505' } } },
-        },
-      });
-
-      await expect(
-        service.register(testUser.username, password),
-      ).rejects.not.toBeInstanceOf(ConflictException);
-    });
   });
 
   describe('verify', () => {

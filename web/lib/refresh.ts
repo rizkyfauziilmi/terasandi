@@ -1,4 +1,4 @@
-import type { AuthTokens } from "@terasandi/contracts";
+import type { RefreshOutcome } from "./api";
 import { refreshSession } from "./api";
 
 /**
@@ -6,19 +6,19 @@ import { refreshSession } from "./api";
  * presenting one token would spend it twice, which the API treats as a stolen
  * token and answers by revoking the whole family: the user signs out.
  */
-const inFlight = new Map<string, Promise<AuthTokens | null>>();
+const inFlight = new Map<string, Promise<RefreshOutcome>>();
 
-/** Exchanges a refresh token once, sharing the result with concurrent callers. */
-export function refreshOnce(refreshToken: string): Promise<AuthTokens | null> {
+/** Exchanges a refresh token once, sharing the outcome with concurrent callers. */
+export function refreshOnce(refreshToken: string): Promise<RefreshOutcome> {
   const running = inFlight.get(refreshToken);
 
   if (running) {
     return running;
   }
 
-  const pending = refreshSession(refreshToken)
-    .catch(() => null)
-    .finally(() => inFlight.delete(refreshToken));
+  const pending = refreshSession(refreshToken).finally(() =>
+    inFlight.delete(refreshToken),
+  );
 
   inFlight.set(refreshToken, pending);
   return pending;

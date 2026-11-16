@@ -24,6 +24,9 @@ describe('envSchema', () => {
       DATABASE_URL: valid.DATABASE_URL,
       JWT_SECRET: valid.JWT_SECRET,
       ACCESS_TOKEN_TTL: '15m',
+      TRUST_PROXY: false,
+      AUTH_RATE_LIMIT: 5,
+      AUTH_IP_RATE_LIMIT: 20,
       ...storageDefaults,
     });
   });
@@ -63,6 +66,21 @@ describe('envSchema', () => {
       /at least 32 characters/,
     );
   });
+
+  it('parses TRUST_PROXY as a boolean', () => {
+    expect(envSchema.parse({ ...valid, TRUST_PROXY: 'true' }).TRUST_PROXY).toBe(
+      true,
+    );
+    expect(
+      envSchema.parse({ ...valid, TRUST_PROXY: 'false' }).TRUST_PROXY,
+    ).toBe(false);
+  });
+
+  it('rejects a non-positive auth rate limit', () => {
+    expect(() => envSchema.parse({ ...valid, AUTH_RATE_LIMIT: '0' })).toThrow(
+      /AUTH_RATE_LIMIT/,
+    );
+  });
 });
 
 describe('storage environment', () => {
@@ -88,9 +106,9 @@ describe('storage environment', () => {
   });
 
   it('rejects a bucket name shorter than three characters', () => {
-    expect(() =>
-      envSchema.parse({ ...valid, STORAGE_BUCKET: 'ab' }),
-    ).toThrow(/STORAGE_BUCKET/);
+    expect(() => envSchema.parse({ ...valid, STORAGE_BUCKET: 'ab' })).toThrow(
+      /STORAGE_BUCKET/,
+    );
   });
 
   it('requires the access key', () => {
@@ -135,6 +153,9 @@ describe('validateEnv', () => {
       DATABASE_URL: valid.DATABASE_URL,
       JWT_SECRET: valid.JWT_SECRET,
       ACCESS_TOKEN_TTL: '15m',
+      TRUST_PROXY: false,
+      AUTH_RATE_LIMIT: 5,
+      AUTH_IP_RATE_LIMIT: 20,
       ...storageDefaults,
     });
   });

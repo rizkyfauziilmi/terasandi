@@ -1,12 +1,26 @@
-import { index, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { ROLES } from '@terasandi/contracts';
+import { getTableColumns } from 'drizzle-orm';
+import {
+  index,
+  jsonb,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from 'drizzle-orm/pg-core';
 
 const at = (name: string) =>
   timestamp(name, { withTimezone: true, mode: 'date' });
+
+/** The closed set of roles, shared with the contracts and the API. */
+export const userRole = pgEnum('user_role', [...ROLES]);
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   username: text('username').notNull().unique(),
   passwordHash: text('password_hash').notNull(),
+  role: userRole('role').notNull().default('user'),
   createdAt: at('created_at').notNull().defaultNow(),
   updatedAt: at('updated_at')
     .notNull()
@@ -21,13 +35,9 @@ export type User = Omit<UserRow, 'passwordHash'>;
 
 export type NewUser = typeof users.$inferInsert;
 
+const { passwordHash, ...rest } = getTableColumns(users);
 /** The columns safe to select and return from a route. */
-export const publicUserColumns = {
-  id: users.id,
-  username: users.username,
-  createdAt: users.createdAt,
-  updatedAt: users.updatedAt,
-};
+export const publicUserColumns = rest;
 
 /**
  * One per sign-in. The family is a separate row so revoking it also applies to

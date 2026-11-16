@@ -11,3 +11,14 @@ allowBuilds:
 permissions:
   '@nestjs/authentication':
     skills: true
+  drizzle-kit:
+    skills: true
+
+skills:
+  dirs:
+    - .agent/skills
+    - .agents/skills
+    - .claude/skills
+    - .cursor/skills
+    - .gemini/skills
+    - .github/skills

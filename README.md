@@ -35,6 +35,42 @@ The initial release focuses on the essential private cloud drive experience. Pro
 - [x] Secure password hashing
 - [x] Session / token-based authentication
 - [x] Route protection middleware
+- [x] First registered user becomes the administrator
+- [x] Role-based access control (`admin` / `user`)
+- [x] Admin-only user creation and role changes
+- [x] Admin user management console (list, search, rename, reset password, revoke sessions, delete)
+
+#### Roles and permissions
+
+Every account has exactly one role:
+
+- **`admin`** — the first account, created by onboarding. Can create users and change roles.
+- **`user`** — every account an admin creates. Can sign in and use the endpoints available to signed-in accounts.
+
+The API is the only place accounts are created:
+
+| Endpoint | Who may call it | Purpose |
+| --- | --- | --- |
+| `POST /auth/onboarding` | anyone, once | creates the first account as `admin`; later calls return `409` |
+| `GET /users/me` | any signed-in user | returns the current account, role included |
+| `POST /users` | `admin` | creates a new account as `user` |
+| `GET /users` | `admin` | lists accounts, with `q` search and `limit` / `offset` pagination |
+| `GET /users/:id` | `admin` | returns one account |
+| `PATCH /users/:id` | `admin` | renames an account |
+| `PATCH /users/:id/role` | `admin` | promotes or demotes an account |
+| `PATCH /users/:id/password` | `admin` | sets a new password and signs the account out everywhere |
+| `POST /users/:id/sessions/revoke` | `admin` | signs the account out of every device |
+| `DELETE /users/:id` | `admin` | deletes an account |
+
+New accounts always start as `user`; promoting one is a separate request, so creating an account can never silently grant privileges. The last admin cannot be demoted (`409`), because an install without an admin could never create users or promote anyone again. Admins also cannot delete their own account (`409`), so the console cannot lock itself out.
+
+Roles live in the database and are loaded on each request, so a role change takes effect immediately, even for a session that is already signed in. On an existing install, the migration marks the oldest account as the first admin.
+
+The web app exposes these endpoints at `/admin/users`, reachable from the account menu. Resetting a password or revoking sessions ends the account's refresh-token families; an already-issued access token stays valid until it expires.
+
+#### Password policy
+
+Passwords follow NIST SP 800-63B-4 and OWASP ASVS 5.0: at least 8 characters, at most 128, and no composition rules — no required letters, digits, or symbols. Requiring those only pushes people toward predictable values like `Password1!`. The control that replaces them is a blocklist: the 10,000 most common passwords are rejected, compared case-insensitively against the whole password. So `correct horse battery staple` is accepted while `qwerty123` is not. The policy lives in `packages/contracts`, so onboarding, admin user creation, and admin password resets all enforce the same rules.
 
 ### 2. Upload & Storage
 
@@ -178,9 +214,9 @@ The API ships a Compose file with its Postgres and MinIO services:
 docker compose -f api/docker-compose.yml up -d
 ```
 
-`minio-init` runs once, waits for MinIO, then creates the private `terasandi-files` bucket and exits. Check it with `docker compose -f api/docker-compose.yml ps` and `docker compose -f api/docker-compose.yml logs minio-init`.
+Bucket setup runs as a `post_start` hook on the MinIO container: it waits for the server, then creates the private `terasandi-files` bucket. It is a lifecycle hook rather than a one-shot service because `docker compose up --wait` treats any exited service as a failure, even on exit code 0. Check it with `docker compose -f api/docker-compose.yml logs minio`.
 
-The images are pinned releases of `pgsty/minio` and `pgsty/mc`, community builds of the MinIO server and client: MinIO no longer publishes images on Docker Hub or anonymous Quay. They keep MinIO's release tags, and the Compose file pins one so a rebuild cannot change the server under you.
+The image is a pinned release of `pgsty/minio`, a community build of the MinIO server: MinIO no longer publishes images on Docker Hub or anonymous Quay. It keeps MinIO's release tags, and the Compose file pins one so a rebuild cannot change the server under you.
 
 Copy `api/.env.example` to `api/.env` and fill the storage variables:
 
@@ -188,7 +224,7 @@ Copy `api/.env.example` to `api/.env` and fill the storage variables:
 | --- | --- | --- |
 | `STORAGE_ENDPOINT` | `http://localhost:9000` | S3 API of MinIO |
 | `STORAGE_REGION` | `us-east-1` | MinIO ignores it, the SDK requires it |
-| `STORAGE_BUCKET` | `terasandi-files` | created by `minio-init` |
+| `STORAGE_BUCKET` | `terasandi-files` | created by the MinIO container's `post_start` hook |
 | `STORAGE_ACCESS_KEY` | `terasandi` | in production, a restricted user, not root |
 | `STORAGE_SECRET_KEY` | `terasandi-dev-secret` | in production, a restricted user, not root |
 | `STORAGE_FORCE_PATH_STYLE` | `true` | required by MinIO; AWS S3 can use virtual-hosted style |
@@ -196,6 +232,17 @@ Copy `api/.env.example` to `api/.env` and fill the storage variables:
 The MinIO console is at [http://localhost:9001](http://localhost:9001), signed in with `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD`. The bucket is private: files are meant to be served by the API, never read directly from MinIO.
 
 For production, create a MinIO user limited to that bucket and use its credentials for `STORAGE_ACCESS_KEY` / `STORAGE_SECRET_KEY`; the root credentials are only for the container itself.
+
+### Auth deployment notes
+
+Set `TRUST_PROXY=true` when the API runs behind a reverse proxy (Caddy, nginx, a load balancer). Without it every request carries the proxy's address, and all users share one rate-limit bucket.
+
+Sign-in attempts are limited per address and username (`AUTH_RATE_LIMIT`, default 5 per minute) and per address alone (`AUTH_IP_RATE_LIMIT`, default 20 per minute).
+
+Two pieces of auth state are process-local, so run one instance of each service, or use sticky sessions:
+
+- The API counts rate limits in memory; several API instances each keep their own counts.
+- The web app de-duplicates a refresh already in flight within one process. With several web instances, two simultaneous requests can spend the same refresh token; the API treats the second as stolen and revokes the session family.
 
 ---
 

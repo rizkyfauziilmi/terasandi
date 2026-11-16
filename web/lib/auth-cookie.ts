@@ -14,6 +14,7 @@ export const authCookieOptions = (maxAge: number) => ({
   sameSite: "lax" as const,
   path: "/",
   maxAge,
+  priority: "high" as const,
 });
 
 export const accessTokenCookieOptions = (expiresIn: number) =>

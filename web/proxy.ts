@@ -27,18 +27,29 @@ export async function proxy(request: NextRequest) {
 
   // The access cookie expires with the token, so its absence is the signal to
   // exchange the refresh token before rendering.
-  const tokens =
+  const outcome =
     !accessToken && refreshToken ? await refreshOnce(refreshToken) : null;
-  const revoked = !accessToken && Boolean(refreshToken) && !tokens;
+  const tokens = outcome?.status === "ok" ? outcome.tokens : null;
+  // Only a token the API refused ends the session. Cookies survive an
+  // unreachable API, or an outage would sign every user out.
+  const rejected =
+    !accessToken && Boolean(refreshToken) && outcome?.status === "rejected";
   const hasSession = Boolean(accessToken || tokens);
 
   // Signed in: never show onboarding or sign-in again.
   if (hasSession) {
     if (isOnboardingPage || isSignInPage) {
-      return redirectTo(new URL("/", request.url), tokens, revoked);
+      return redirectTo(new URL("/", request.url), tokens, rejected);
     }
 
-    return passThrough(request, tokens, revoked);
+    return passThrough(request, tokens, rejected);
+  }
+
+  // Without an answer from the API we cannot tell where the user belongs.
+  // Rendering is the safe move: redirecting would look signed out while the
+  // cookies are still valid.
+  if (outcome?.status === "unreachable") {
+    return passThrough(request, null, false);
   }
 
   const isOnboarding = await getIsOnboarding();
@@ -46,32 +57,32 @@ export async function proxy(request: NextRequest) {
   // The onboarding page is only reachable while the API has no users yet.
   if (isOnboardingPage) {
     return isOnboarding === false
-      ? redirectTo(new URL(SIGN_IN_PATH, request.url), tokens, revoked)
-      : passThrough(request, tokens, revoked);
+      ? redirectTo(new URL(SIGN_IN_PATH, request.url), tokens, rejected)
+      : passThrough(request, tokens, rejected);
   }
 
   // Sign-in is only reachable once onboarding is done.
   if (isSignInPage) {
     return isOnboarding === true
-      ? redirectTo(new URL(ONBOARDING_PATH, request.url), tokens, revoked)
-      : passThrough(request, tokens, revoked);
+      ? redirectTo(new URL(ONBOARDING_PATH, request.url), tokens, rejected)
+      : passThrough(request, tokens, rejected);
   }
 
   return redirectTo(
     new URL(isOnboarding === true ? ONBOARDING_PATH : SIGN_IN_PATH, request.url),
     tokens,
-    revoked,
+    rejected,
   );
 }
 
 function passThrough(
   request: NextRequest,
   tokens: AuthTokens | null,
-  revoked: boolean,
+  rejected: boolean,
 ) {
   if (!tokens) {
     const response = NextResponse.next();
-    if (revoked) {
+    if (rejected) {
       clearCookies(response);
     }
     return response;
@@ -90,12 +101,12 @@ function passThrough(
 function redirectTo(
   url: URL,
   tokens: AuthTokens | null,
-  revoked: boolean,
+  rejected: boolean,
 ) {
   const response = NextResponse.redirect(url);
   attachCookies(response, tokens);
 
-  if (revoked) {
+  if (rejected) {
     clearCookies(response);
   }
 

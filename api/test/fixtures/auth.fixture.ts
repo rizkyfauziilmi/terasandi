@@ -4,9 +4,13 @@ import { User } from '../../src/db/schema.js';
 export const testUser: User = {
   id: 'a40890cc-d300-412b-9e3e-b760003170eb',
   username: 'rizky',
+  role: 'user',
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
   updatedAt: new Date('2026-01-01T00:00:00.000Z'),
 };
+
+/** The same fixture with the role admins have. */
+export const testAdmin: User = { ...testUser, role: 'admin' };
 
 /** The same user as stored, for the one lookup that reads the hash. */
 export const testUserRow = {

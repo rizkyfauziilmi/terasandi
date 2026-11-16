@@ -1,4 +1,8 @@
-import { ConflictException, Logger, UnauthorizedException } from '@nestjs/common';
+import {
+  ConflictException,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TokenService, RefreshTokenError } from '@nestjs/authentication';
 import { vi } from 'vitest';
@@ -13,9 +17,11 @@ import { CredentialsService } from './credentials.service.js';
 
 describe('AuthService', () => {
   let service: AuthService;
-  let usersService: { hasAnyUser: ReturnType<typeof vi.fn> };
+  let usersService: {
+    hasAnyUser: ReturnType<typeof vi.fn>;
+    createFirstAdmin: ReturnType<typeof vi.fn>;
+  };
   let credentialsService: {
-    register: ReturnType<typeof vi.fn>;
     verify: ReturnType<typeof vi.fn>;
   };
   let tokenService: {
@@ -33,8 +39,8 @@ describe('AuthService', () => {
     warnSpy = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
     debugSpy = vi.spyOn(Logger.prototype, 'debug').mockImplementation(() => {});
 
-    usersService = { hasAnyUser: vi.fn() };
-    credentialsService = { register: vi.fn(), verify: vi.fn() };
+    usersService = { hasAnyUser: vi.fn(), createFirstAdmin: vi.fn() };
+    credentialsService = { verify: vi.fn() };
     tokenService = {
       issue: vi.fn().mockResolvedValue(testTokens),
       refresh: vi.fn(),
@@ -72,16 +78,13 @@ describe('AuthService', () => {
   });
 
   describe('onboarding', () => {
-    it('registers the first user and issues a token', async () => {
+    it('creates the first user as an admin and issues a token', async () => {
       usersService.hasAnyUser.mockResolvedValue(false);
-      credentialsService.register.mockResolvedValue(testUser);
+      usersService.createFirstAdmin.mockResolvedValue(testUser);
 
       const result = await service.onboarding(credentials);
 
-      expect(credentialsService.register).toHaveBeenCalledWith(
-        credentials.username,
-        credentials.password,
-      );
+      expect(usersService.createFirstAdmin).toHaveBeenCalledWith(credentials);
       expect(tokenService.issue).toHaveBeenCalledWith(testUser.id, {
         method: 'password',
       });
@@ -94,7 +97,19 @@ describe('AuthService', () => {
       await expect(service.onboarding(credentials)).rejects.toThrow(
         ConflictException,
       );
-      expect(credentialsService.register).not.toHaveBeenCalled();
+      expect(usersService.createFirstAdmin).not.toHaveBeenCalled();
+    });
+
+    it('refuses when it loses the onboarding race', async () => {
+      // Another request created the first user between the cheap check and
+      // the transaction.
+      usersService.hasAnyUser.mockResolvedValue(false);
+      usersService.createFirstAdmin.mockResolvedValue(undefined);
+
+      await expect(service.onboarding(credentials)).rejects.toThrow(
+        ConflictException,
+      );
+      expect(tokenService.issue).not.toHaveBeenCalled();
     });
   });
 
@@ -147,6 +162,52 @@ describe('AuthService', () => {
       expect(debugSpy).not.toHaveBeenCalled();
       expect(JSON.stringify(warnSpy.mock.calls)).not.toContain('stale-token');
     });
+
+    it('shares one rotation between concurrent calls for the same token', async () => {
+      let release!: (tokens: typeof testTokens) => void;
+      tokenService.refresh.mockReturnValue(
+        new Promise((resolve) => {
+          release = resolve;
+        }),
+      );
+
+      const first = service.refresh(testTokens.refreshToken);
+      const second = service.refresh(testTokens.refreshToken);
+
+      // The second call joined the first instead of spending the token again.
+      expect(tokenService.refresh).toHaveBeenCalledTimes(1);
+
+      release(testTokens);
+
+      await expect(Promise.all([first, second])).resolves.toEqual([
+        testTokens,
+        testTokens,
+      ]);
+      expect(tokenService.refresh).toHaveBeenCalledTimes(1);
+    });
+
+    it('rotates again once the previous rotation has finished', async () => {
+      tokenService.refresh.mockResolvedValue(testTokens);
+
+      await service.refresh(testTokens.refreshToken);
+      await service.refresh(testTokens.refreshToken);
+
+      expect(tokenService.refresh).toHaveBeenCalledTimes(2);
+    });
+
+    it('forgets a failed rotation so a retry reaches the token service', async () => {
+      tokenService.refresh.mockRejectedValueOnce(
+        new RefreshTokenError('expired'),
+      );
+      tokenService.refresh.mockResolvedValueOnce(testTokens);
+
+      await expect(service.refresh('retry-token')).rejects.toThrow(
+        RefreshTokenError,
+      );
+      await expect(service.refresh('retry-token')).resolves.toEqual(testTokens);
+
+      expect(tokenService.refresh).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe('signOut', () => {
@@ -155,9 +216,7 @@ describe('AuthService', () => {
 
       await service.signOut(testTokens.refreshToken);
 
-      expect(tokenService.revoke).toHaveBeenCalledWith(
-        testTokens.refreshToken,
-      );
+      expect(tokenService.revoke).toHaveBeenCalledWith(testTokens.refreshToken);
       expect(logSpy).toHaveBeenCalledWith('User signed out', {
         revoked: true,
       });
@@ -167,13 +226,14 @@ describe('AuthService', () => {
   describe('logging', () => {
     it('logs a successful onboarding without the password', async () => {
       usersService.hasAnyUser.mockResolvedValue(false);
-      credentialsService.register.mockResolvedValue(testUser);
+      usersService.createFirstAdmin.mockResolvedValue(testUser);
 
       await service.onboarding(credentials);
 
       expect(logSpy).toHaveBeenCalledWith('User onboarded', {
         userId: testUser.id,
         username: testUser.username,
+        role: testUser.role,
       });
       expect(JSON.stringify(logSpy.mock.calls)).not.toContain(
         credentials.password,

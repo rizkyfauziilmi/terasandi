@@ -1,5 +1,6 @@
 import { Module, StandardSchemaValidationPipe } from '@nestjs/common';
 import { AuthenticationModule } from '@nestjs/authentication';
+import { AuthorizationModule } from '@nestjs/authorization';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_PIPE } from '@nestjs/core';
 import { DrizzleModule } from '@nestjs/drizzle';
@@ -36,6 +37,9 @@ import { UsersModule } from './users/users.module.js';
       }),
       inject: [ConfigService],
     }),
+    // Authentication first: its guard sets `request.user`, which `@Can()`
+    // checks read. The authorization module verifies this order at startup.
+    AuthorizationModule.forRoot(),
     DrizzleModule.forRootAsync({
       useFactory: (configService: ConfigService<Env, true>) => ({
         drizzle,

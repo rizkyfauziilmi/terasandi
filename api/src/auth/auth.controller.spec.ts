@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { vi } from 'vitest';
 import {
   testCredentials,
@@ -28,6 +29,7 @@ describe('AuthController', () => {
     };
 
     const module: TestingModule = await Test.createTestingModule({
+      imports: [ThrottlerModule.forRoot([])],
       controllers: [AuthController],
       providers: [{ provide: AuthService, useValue: authService }],
     }).compile();

@@ -1,0 +1,77 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "bed9c4b9-f6d8-416c-beed-bb34bc695b2b",
+  "prevIds": [
+    "393d3a3e-17eb-4871-a31e-2b3f2411bf5d"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_enum",
+      "statementTarget": [
+        "enum",
+        "public",
+        "user_role"
+      ],
+      "writes": [
+        "s|enum|public.user_role",
+        "n|enum|public.user_role",
+        "e|enum|public.user_role",
+        "n|type|public.user_role"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "users",
+        "role"
+      ],
+      "writes": [
+        "s|col|public.users.role",
+        "n|col|public.users.role",
+        "e|col|public.users.role"
+      ],
+      "reads": [
+        "n|tbl|public.users",
+        "n|sch|public",
+        "n|enum|public.user_role"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "user_role",
+        "values": [
+          "admin",
+          "user"
+        ],
+        "entityType": "enums"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "users",
+        "name": "role",
+        "type": "user_role",
+        "typeSchema": "public",
+        "notNull": true,
+        "dimensions": 0,
+        "default": "'user'",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    }
+  ]
+}

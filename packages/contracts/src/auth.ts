@@ -1,25 +1,34 @@
-import { z } from 'zod';
+import { z } from "zod";
+import { COMMON_PASSWORDS } from "./common-passwords.js";
+import type { Role } from "./user.js";
 
 export const usernameSchema = z
   .string()
   .trim()
-  .min(3, 'Username must be at least 3 characters')
-  .max(32, 'Username must be at most 32 characters')
+  .min(3, "Username must be at least 3 characters")
+  .max(32, "Username must be at most 32 characters")
   .regex(
     /^[a-zA-Z0-9_]+$/,
-    'Username may only contain letters, numbers, and underscores',
+    "Username may only contain letters, numbers, and underscores",
   );
 
+/**
+ * Length is the only composition rule, following NIST SP 800-63B-4 and OWASP
+ * ASVS 5.0 V6.2.5: no required letters, digits, or symbols. Requiring those
+ * makes users pick predictable values (`Password1!`); length is what raises the
+ * cost of guessing.
+ *
+ * The control that replaces composition rules is the blocklist: a password that
+ * is already common or breached is the attack that matters, so it is refused
+ * outright. The whole password is compared, case-insensitively.
+ */
 export const passwordSchema = z
   .string()
-  .min(8, 'Password must be at least 8 characters')
-  .max(128, 'Password must be at most 128 characters')
-  .regex(/[a-zA-Z]/, 'Password must contain at least one letter')
-  .regex(/[0-9]/, 'Password must contain at least one number')
-  .regex(
-    /[^a-zA-Z0-9]/,
-    'Password must contain at least one special character',
-  );
+  .min(8, "Password must be at least 8 characters")
+  .max(128, "Password must be at most 128 characters")
+  .refine((value) => !COMMON_PASSWORDS.has(value.toLowerCase()), {
+    message: "That password is too common. Please choose another.",
+  });
 
 /** The body accepted by `POST /auth/onboarding`. */
 export const signUpSchema = z.object({
@@ -29,13 +38,13 @@ export const signUpSchema = z.object({
 
 /** The body accepted by `POST /auth/sign-in`. */
 export const signInSchema = z.object({
-  username: z.string().trim().min(1, 'Username is required'),
-  password: z.string().min(1, 'Password is required'),
+  username: z.string().trim().min(1, "Username is required"),
+  password: z.string().min(1, "Password is required"),
 });
 
 /** The body accepted by `POST /auth/refresh` and `POST /auth/sign-out`. */
 export const refreshTokenSchema = z.object({
-  refreshToken: z.string().min(1, 'Refresh token is required'),
+  refreshToken: z.string().min(1, "Refresh token is required"),
 });
 
 export type SignUpDto = z.infer<typeof signUpSchema>;
@@ -58,6 +67,7 @@ export interface AuthTokens {
 export interface AuthUser {
   id: string;
   username: string;
+  role: Role;
   createdAt: string;
   updatedAt: string;
 }

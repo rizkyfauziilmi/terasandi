@@ -24,7 +24,7 @@ export function PasswordField<T extends FieldValues>({
   control,
   name,
   label = "Password",
-  placeholder = "@my_very_secret_password",
+  placeholder = "secret_password",
 }: PasswordFieldProps<T>) {
   const [visible, setVisible] = useState(false);
   const id = `form-${name}`;

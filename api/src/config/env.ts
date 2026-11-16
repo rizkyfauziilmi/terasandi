@@ -7,8 +7,7 @@ const duration = z
     'ACCESS_TOKEN_TTL must be a duration such as "15m" or "3600s"',
   )
   .transform(
-    (value) =>
-      value as `${number}${'ms' | 's' | 'm' | 'h' | 'd' | 'w'}`,
+    (value) => value as `${number}${'ms' | 's' | 'm' | 'h' | 'd' | 'w'}`,
   );
 
 export const envSchema = z.object({
@@ -21,6 +20,13 @@ export const envSchema = z.object({
     .string()
     .min(32, 'JWT_SECRET must be at least 32 characters long'),
   ACCESS_TOKEN_TTL: duration.default('15m'),
+  // Express `trust proxy`: on when the API sits behind a reverse proxy, so
+  // rate limits and logs see the client address, not the proxy's.
+  TRUST_PROXY: z.stringbool().default(false),
+  // Sign-in attempts per address and username, per minute.
+  AUTH_RATE_LIMIT: z.coerce.number().int().positive().default(5),
+  // Sign-in attempts per address alone, per minute: a spray of usernames.
+  AUTH_IP_RATE_LIMIT: z.coerce.number().int().positive().default(20),
   STORAGE_ENDPOINT: z.url().default('http://localhost:9000'),
   STORAGE_REGION: z.string().min(1).default('us-east-1'),
   STORAGE_BUCKET: z.string().min(3).default('terasandi-files'),
