@@ -63,8 +63,7 @@ type Action =
   | { type: "enqueue"; jobs: UploadJob[] }
   | { type: "patch"; id: string; patch: Partial<UploadJob> }
   | { type: "remove"; id: string }
-  | { type: "clear" }
-  | { type: "clearDone" };
+  | { type: "clear" };
 
 function reducer(state: UploadJob[], action: Action): UploadJob[] {
   switch (action.type) {
@@ -78,8 +77,6 @@ function reducer(state: UploadJob[], action: Action): UploadJob[] {
       return state.filter((job) => job.id !== action.id);
     case "clear":
       return [];
-    case "clearDone":
-      return state.filter((job) => job.status !== "done");
   }
 }
 
@@ -283,15 +280,23 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     apply({ type: "clear" });
   }, [apply]);
 
-  // A finished batch keeps its success state briefly, then disappears.
+  // A settled batch keeps its result briefly, then disappears entirely.
+  // Retryable failures stay visible; skipped files do not block auto-hide.
+  const settled =
+    jobs.length > 0 &&
+    jobs.every(
+      (job) =>
+        job.status === "done" || (job.status === "error" && !job.retryable),
+    );
+
   useEffect(() => {
-    if (jobs.length === 0 || !jobs.every((job) => job.status === "done")) {
+    if (!settled) {
       return;
     }
 
-    const timer = setTimeout(() => apply({ type: "clearDone" }), 4000);
+    const timer = setTimeout(() => apply({ type: "clear" }), 4000);
     return () => clearTimeout(timer);
-  }, [jobs, apply]);
+  }, [settled, apply]);
 
   useEffect(() => {
     const warn = (event: BeforeUnloadEvent) => {

@@ -37,6 +37,7 @@ import { Progress, ProgressValue } from "@/components/ui/progress";
 import { Spinner } from "@/components/ui/spinner";
 import { PREVIEW_ICONS } from "@/lib/file-previews";
 import { formatBytes } from "@/lib/files";
+import { summarizeUploadProgress } from "@/lib/upload-progress";
 import { useUploadActions, useUploadJobs, type UploadJob } from "./upload-provider";
 
 const RUNNING_STATUSES = new Set(["uploading", "processing"]);
@@ -46,25 +47,17 @@ export function UploadManager() {
   const jobs = useUploadJobs();
   const { retry, resume, cancel, remove, clear } = useUploadActions();
 
-  const running = jobs.filter((job) => RUNNING_STATUSES.has(job.status));
-  const queued = jobs.filter((job) => job.status === "queued");
-  const failed = jobs.filter((job) => job.status === "error");
-  const done = jobs.filter((job) => job.status === "done");
-
-  const totalBytes = jobs.reduce((total, job) => total + job.size, 0);
-  const uploadedBytes = jobs.reduce((total, job) => {
-    if (job.status === "done") {
-      return total + job.size;
-    }
-    if (RUNNING_STATUSES.has(job.status)) {
-      return total + Math.round((job.size * job.progress) / 100);
-    }
-    return total;
-  }, 0);
-  const overall =
-    totalBytes === 0
-      ? 0
-      : Math.min(100, Math.round((uploadedBytes / totalBytes) * 100));
+  const {
+    running,
+    queued,
+    failed,
+    done,
+    uploadable,
+    skippedCount,
+    totalBytes,
+    uploadedBytes,
+    percent,
+  } = summarizeUploadProgress(jobs);
 
   if (jobs.length === 0) {
     return null;
@@ -83,7 +76,7 @@ export function UploadManager() {
     <Card
       size="sm"
       aria-label="Upload progress"
-      className="fixed right-4 bottom-20 z-40 w-[min(24rem,calc(100vw-2rem))] bg-popover text-popover-foreground shadow-lg ring-0 [--card-spacing:--spacing(3)]"
+      className="fixed right-4 bottom-4 z-40 w-[min(24rem,calc(100vw-2rem))] bg-popover text-popover-foreground shadow-lg ring-0 [--card-spacing:--spacing(3)]"
     >
       <Collapsible defaultOpen>
         <CardHeader className="py-3">
@@ -104,7 +97,8 @@ export function UploadManager() {
 
           <CardDescription className="text-xs">
             {formatBytes(uploadedBytes)} / {formatBytes(totalBytes)} · {done.length}/
-            {jobs.length} done
+            {uploadable.length} uploaded
+            {skippedCount > 0 && ` · ${skippedCount} skipped`}
           </CardDescription>
 
           <CardAction>
@@ -125,7 +119,7 @@ export function UploadManager() {
         </CardHeader>
 
         <CardContent className="pb-3">
-          <Progress value={overall} aria-live="polite">
+          <Progress value={percent} aria-live="polite">
             <ProgressValue />
           </Progress>
         </CardContent>
@@ -224,6 +218,6 @@ function statusText(job: UploadJob): string {
     case "done":
       return "Uploaded";
     case "error":
-      return "Failed";
+      return job.retryable ? "Failed" : "Skipped";
   }
 }

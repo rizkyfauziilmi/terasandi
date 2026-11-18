@@ -133,12 +133,18 @@ const TEXT_MIME_TYPES = new Set([
   "application/x-powershell",
 ]);
 
-const TEXT_PREVIEW_BYTES = 16 * 1024;
+export const TEXT_PREVIEW_BYTES = 16 * 1024;
 
-/** Chooses a local preview strategy from the browser MIME type or extension. */
-export function previewKindFor(file: File): FilePreviewKind {
-  const mime = file.type.trim().toLowerCase();
-  const ext = extensionOf(file.name);
+/** The bits of a file needed to choose a preview strategy. */
+export interface PreviewMeta {
+  name: string;
+  type: string;
+}
+
+/** Chooses a preview strategy from a MIME type or extension. */
+export function previewKindForMeta({ name, type }: PreviewMeta): FilePreviewKind {
+  const mime = type.trim().toLowerCase();
+  const ext = extensionOf(name);
 
   if (mime.startsWith("image/") || IMAGE_EXTENSIONS.has(ext)) {
     return "image";
@@ -161,6 +167,11 @@ export function previewKindFor(file: File): FilePreviewKind {
   }
 
   return "file";
+}
+
+/** Browser `File` adapter for staged uploads. */
+export function previewKindFor(file: File): FilePreviewKind {
+  return previewKindForMeta(file);
 }
 
 /** Resolves ambiguous extensions, e.g. TypeScript text vs MPEG-TS bytes. */

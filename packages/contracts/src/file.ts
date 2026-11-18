@@ -37,6 +37,11 @@ export const fileSizeSchema = z
 export const fileIdSchema = z.uuid();
 export const uploadIdSchema = z.uuid();
 
+/** Body shared by bulk delete and bulk ZIP download. */
+export const bulkFileIdsSchema = z.object({
+  ids: z.array(fileIdSchema).min(1),
+});
+
 /** The body accepted by `POST /files/uploads`. */
 export const requestFileUploadSchema = z.object({
   name: fileNameSchema,
@@ -57,6 +62,7 @@ export const renameFileSchema = z.object({
 export type RequestFileUploadDto = z.infer<typeof requestFileUploadSchema>;
 export type CompleteFileUploadDto = z.infer<typeof completeFileUploadSchema>;
 export type RenameFileDto = z.infer<typeof renameFileSchema>;
+export type BulkFileIdsDto = z.infer<typeof bulkFileIdsSchema>;
 
 /**
  * A short-lived, direct-to-storage upload. `headers` must be sent with the

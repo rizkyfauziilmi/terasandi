@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { ApiError, request } from "./api/client";
+import { ApiError, request, requestResponse } from "./api/client";
 import { ACCESS_TOKEN_COOKIE } from "./auth-cookie";
 
 /**
@@ -24,6 +24,27 @@ export async function fetchWithSession<T>(
   headers.set("Authorization", `Bearer ${accessToken}`);
 
   return request<T>(path, {
+    ...init,
+    headers,
+    cache: "no-store",
+  });
+}
+
+/** Like `fetchWithSession`, but keeps a streaming binary response intact. */
+export async function fetchWithSessionResponse(
+  path: string,
+  init: RequestInit = {},
+): Promise<Response> {
+  const accessToken = (await cookies()).get(ACCESS_TOKEN_COOKIE)?.value;
+
+  if (!accessToken) {
+    throw new ApiError(401, "Your session has ended. Please sign in again.");
+  }
+
+  const headers = new Headers(init.headers);
+  headers.set("Authorization", `Bearer ${accessToken}`);
+
+  return requestResponse(path, {
     ...init,
     headers,
     cache: "no-store",

@@ -1,13 +1,15 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import type { RenameFileDto, StoredFile } from "@terasandi/contracts";
-import { renameFileSchema } from "@terasandi/contracts";
-import { DownloadIcon, PencilIcon, Trash2Icon } from "lucide-react";
+import type { StoredFile } from "@terasandi/contracts";
+import {
+  DownloadIcon,
+  EyeIcon,
+  MoreHorizontalIcon,
+  PencilIcon,
+  Trash2Icon,
+} from "lucide-react";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { deleteFileAction, renameFileAction } from "@/app/actions/files";
-import { TextField } from "@/components/form";
+import { deleteFileAction } from "@/app/actions/files";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -17,116 +19,79 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { FieldGroup } from "@/components/ui/field";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { notifyError, notifySuccess } from "@/lib/notify";
+import { FilePreviewDialog } from "./file-preview-dialog";
+import { RenameFileDialog } from "./rename-file-dialog";
 
-/** Download, rename, and delete controls for one file row. */
+/** Preview button plus an actions dropdown for one file row. */
 export function FileRowActions({ file }: { file: StoredFile }) {
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   return (
     <>
-      <a
-        href={`/api/files/${file.id}/download`}
-        className={buttonVariants({ variant: "ghost", size: "icon-sm" })}
-        aria-label={`Download ${file.name}`}
-        title="Download"
-      >
-        <DownloadIcon />
-      </a>
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        onClick={() => setRenameOpen(true)}
-        aria-label={`Rename ${file.name}`}
-        title="Rename"
-      >
-        <PencilIcon />
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        onClick={() => setDeleteOpen(true)}
-        aria-label={`Delete ${file.name}`}
-        title="Delete"
-      >
-        <Trash2Icon />
-      </Button>
+      <div className="flex items-center gap-1">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => setPreviewOpen(true)}
+          aria-label={`Preview ${file.name}`}
+          title="Preview"
+        >
+          <EyeIcon />
+        </Button>
 
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={`Actions for ${file.name}`}
+                title="More actions"
+              />
+            }
+          >
+            <MoreHorizontalIcon />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-44">
+            <DropdownMenuItem render={<a href={`/api/files/${file.id}/download`} />}>
+              <DownloadIcon />
+              Download
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setRenameOpen(true)}>
+              <PencilIcon />
+              Rename
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              variant="destructive"
+              onClick={() => setDeleteOpen(true)}
+            >
+              <Trash2Icon />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      <FilePreviewDialog
+        file={file}
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+      />
       <RenameFileDialog file={file} open={renameOpen} onOpenChange={setRenameOpen} />
       <DeleteFileDialog file={file} open={deleteOpen} onOpenChange={setDeleteOpen} />
     </>
-  );
-}
-
-function RenameFileDialog({
-  file,
-  open,
-  onOpenChange,
-}: {
-  file: StoredFile;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) {
-  const formId = `rename-file-${file.id}`;
-  const form = useForm<RenameFileDto>({
-    mode: "onChange",
-    resolver: zodResolver(renameFileSchema),
-    defaultValues: { name: file.name },
-  });
-  const { isValid, isSubmitting } = form.formState;
-
-  async function onSubmit(data: RenameFileDto) {
-    const result = await renameFileAction(file.id, data);
-
-    if ("error" in result) {
-      notifyError("Could not rename file", result.error);
-      return;
-    }
-
-    notifySuccess("File renamed", `${file.name} is now ${data.name}.`);
-    onOpenChange(false);
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Rename file</DialogTitle>
-          <DialogDescription>
-            Give {file.name} a new display name.
-          </DialogDescription>
-        </DialogHeader>
-        <form id={formId} onSubmit={form.handleSubmit(onSubmit)}>
-          <FieldGroup>
-            <TextField
-              control={form.control}
-              name="name"
-              label="File name"
-              placeholder="report.pdf"
-              idPrefix="file"
-            />
-          </FieldGroup>
-        </form>
-        <DialogFooter>
-          <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
-          <Button type="submit" form={formId} disabled={!isValid || isSubmitting}>
-            {isSubmitting ? "Saving…" : "Save"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }
 

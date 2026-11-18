@@ -21,9 +21,10 @@ import {
   type RequestFileUploadDto,
   type StoredFile,
 } from '@terasandi/contracts';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, inArray } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { randomUUID } from 'node:crypto';
+import type { Readable } from 'node:stream';
 import { durationToMs, type Env } from '../config/env.js';
 import type { User } from '../db/schema.js';
 import { files, publicFileColumns } from '../db/schema.js';
@@ -41,6 +42,11 @@ type PublicFileRow = {
   createdAt: Date;
   updatedAt: Date;
 };
+
+export interface ArchiveEntry {
+  name: string;
+  storageKey: string;
+}
 
 @Injectable()
 export class FilesService {
@@ -204,6 +210,71 @@ export class FilesService {
 
     await this.disk.delete(row.storageKey);
     this.logger.log('File deleted', { userId: user.id, fileId: id });
+  }
+
+  /** Deletes every selected file that still belongs to the signed-in user. */
+  async deleteMany(user: User, ids: string[]): Promise<string[]> {
+    const uniqueIds = [...new Set(ids)];
+    const rows = await this.db
+      .delete(files)
+      .where(and(inArray(files.id, uniqueIds), eq(files.userId, user.id)))
+      .returning({ id: files.id, storageKey: files.storageKey });
+
+    if (rows.length === 0) {
+      return [];
+    }
+
+    await this.disk.delete(rows.map((row) => row.storageKey));
+    this.logger.log('Files deleted', { userId: user.id, count: rows.length });
+    return rows.map((row) => row.id);
+  }
+
+  /** Storage keys for the ZIP stream, in the order the client selected them. */
+  async archiveEntries(user: User, ids: string[]): Promise<ArchiveEntry[]> {
+    const uniqueIds = [...new Set(ids)];
+    const rows = await this.db
+      .select({
+        id: files.id,
+        name: files.name,
+        storageKey: files.storageKey,
+      })
+      .from(files)
+      .where(and(inArray(files.id, uniqueIds), eq(files.userId, user.id)));
+
+    if (rows.length === 0) {
+      throw new NotFoundException('No files found');
+    }
+
+    const byId = new Map(rows.map((row) => [row.id, row]));
+    return uniqueIds.flatMap((id) => {
+      const row = byId.get(id);
+      return row ? [{ name: row.name, storageKey: row.storageKey }] : [];
+    });
+  }
+
+  /** Opens one object as a stream so the controller can pipe it into the ZIP. */
+  async openArchiveEntry(storageKey: string) {
+    const { body } = await this.disk.get(storageKey);
+    return body;
+  }
+
+  /** Opens one of the user's files for inline preview with its detected MIME type. */
+  async openPreview(
+    user: User,
+    id: string,
+  ): Promise<{ mimeType: string; body: Readable }> {
+    const [row] = await this.db
+      .select({ mimeType: files.mimeType, storageKey: files.storageKey })
+      .from(files)
+      .where(and(eq(files.id, id), eq(files.userId, user.id)))
+      .limit(1);
+
+    if (!row) {
+      throw new NotFoundException('File not found');
+    }
+
+    const { body } = await this.disk.get(row.storageKey);
+    return { mimeType: row.mimeType, body };
   }
 
   /** A short-lived link to the private object, only for one of the user's files. */

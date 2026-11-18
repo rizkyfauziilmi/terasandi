@@ -276,6 +276,10 @@ describe('Files (e2e)', () => {
       .set('Authorization', bob)
       .expect(404);
     await request(app.getHttpServer())
+      .get(`/files/${stranger.id}/preview`)
+      .set('Authorization', bob)
+      .expect(404);
+    await request(app.getHttpServer())
       .delete(`/files/${stranger.id}`)
       .set('Authorization', bob)
       .expect(404);
@@ -317,6 +321,69 @@ describe('Files (e2e)', () => {
       .get(`/files/${file.id}/download`)
       .set('Authorization', alice)
       .expect(404);
+  });
+
+  it('streams a ZIP of selected own files and bulk-deletes only own files', async () => {
+    const alpha = await upload(alice, 'alpha.png', png);
+    const beta = await upload(alice, 'beta.png', png);
+    const stranger = await upload(bob, 'stranger.png', png);
+
+    await request(app.getHttpServer())
+      .post('/files/archive')
+      .set('Authorization', alice)
+      .send({ ids: [] })
+      .expect(400);
+
+    const archive = await request(app.getHttpServer())
+      .post('/files/archive')
+      .set('Authorization', alice)
+      .send({ ids: [beta.id, alpha.id, stranger.id] })
+      .buffer(true)
+      .parse((response, callback) => {
+        const chunks: Buffer[] = [];
+        response.on('data', (chunk: Buffer) => chunks.push(chunk));
+        response.on('end', () => callback(null, Buffer.concat(chunks)));
+      })
+      .expect(200);
+
+    expect(archive.headers['content-type']).toContain('application/zip');
+    const bytes = archive.body as Buffer;
+    expect(bytes.subarray(0, 4)).toEqual(Buffer.from([0x50, 0x4b, 0x03, 0x04]));
+    expect(bytes.includes(Buffer.from('alpha.png'))).toBe(true);
+    expect(bytes.includes(Buffer.from('beta.png'))).toBe(true);
+    expect(bytes.includes(Buffer.from('stranger.png'))).toBe(false);
+
+    const preview = await request(app.getHttpServer())
+      .get(`/files/${alpha.id}/preview`)
+      .set('Authorization', alice)
+      .expect(200);
+    expect(preview.headers['content-type']).toContain('image/png');
+    expect(preview.headers['content-disposition']).toBe('inline');
+
+    await request(app.getHttpServer())
+      .delete('/files')
+      .set('Authorization', alice)
+      .send({ ids: [alpha.id, beta.id, stranger.id] })
+      .expect(204);
+
+    const { body: aliceList } = await request(app.getHttpServer())
+      .get('/files')
+      .set('Authorization', alice)
+      .expect(200);
+    expect((aliceList as FilesResponse).files).toEqual([]);
+
+    const { body: bobList } = await request(app.getHttpServer())
+      .get('/files')
+      .set('Authorization', bob)
+      .expect(200);
+    expect((bobList as FilesResponse).files.map((item) => item.id)).toEqual([
+      stranger.id,
+    ]);
+
+    await request(app.getHttpServer())
+      .delete(`/files/${stranger.id}`)
+      .set('Authorization', bob)
+      .expect(204);
   });
 
   it('keeps every file route away from guests', async () => {

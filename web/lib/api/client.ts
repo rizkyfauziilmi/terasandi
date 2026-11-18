@@ -24,6 +24,20 @@ export async function request<T>(
   path: string,
   init: RequestInit = {},
 ): Promise<T> {
+  const response = await requestResponse(path, init);
+
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  return (await response.json()) as T;
+}
+
+/** Same error handling as `request`, but leaves the response body untouched. */
+export async function requestResponse(
+  path: string,
+  init: RequestInit = {},
+): Promise<Response> {
   let response: Response;
 
   try {
@@ -36,11 +50,7 @@ export async function request<T>(
     throw new ApiError(response.status, await readErrorMessage(response));
   }
 
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
-  return (await response.json()) as T;
+  return response;
 }
 
 /** A JSON `POST` to the API. */

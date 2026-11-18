@@ -1,7 +1,11 @@
 "use server";
 
-import { fileIdSchema, renameFileSchema } from "@terasandi/contracts";
-import type { RenameFileDto } from "@terasandi/contracts";
+import {
+  bulkFileIdsSchema,
+  fileIdSchema,
+  renameFileSchema,
+} from "@terasandi/contracts";
+import type { BulkFileIdsDto, RenameFileDto } from "@terasandi/contracts";
 import { revalidatePath } from "next/cache";
 import type { ZodType } from "zod";
 import { apiErrorMessage } from "@/lib/api/client";
@@ -34,6 +38,12 @@ export async function deleteFileAction(id: string): Promise<FileActionState> {
   }
 
   return run(() => mutateWithSession("DELETE", `/files/${parsed.data}`));
+}
+
+export async function deleteFilesAction(ids: string[]): Promise<FileActionState> {
+  return validated<BulkFileIdsDto>(bulkFileIdsSchema, { ids }, (data) =>
+    mutateWithSession("DELETE", "/files", data),
+  );
 }
 
 async function validated<T>(

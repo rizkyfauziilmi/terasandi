@@ -33,7 +33,11 @@ function insertChain(result: () => unknown[] | Promise<unknown[]>) {
 
 describe('FilesService', () => {
   let disk: InMemoryDisk;
-  let db: { insert: ReturnType<typeof vi.fn> };
+  let db: {
+    insert: ReturnType<typeof vi.fn>;
+    delete: ReturnType<typeof vi.fn>;
+    select: ReturnType<typeof vi.fn>;
+  };
   let service: FilesService;
 
   const incomingKey = `incoming/${USER_ID}/${UPLOAD_ID}`;
@@ -63,6 +67,22 @@ describe('FilesService', () => {
     return values;
   }
 
+  function deleteChain(rows: { id: string; storageKey: string }[]) {
+    const returning = vi.fn(() => rows);
+    const where = vi.fn(() => ({ returning }));
+    db.delete.mockReturnValue({ where });
+    return where;
+  }
+
+  function selectChain(
+    rows: { id: string; name: string; storageKey: string }[],
+  ) {
+    const where = vi.fn(async () => rows);
+    const from = vi.fn(() => ({ where }));
+    db.select.mockReturnValue({ from });
+    return where;
+  }
+
   beforeEach(async () => {
     disk = new InMemoryDisk({
       signedUrls: {
@@ -70,7 +90,7 @@ describe('FilesService', () => {
         keys: ['test-signing-key-0123456789abcdef'],
       },
     });
-    db = { insert: vi.fn() };
+    db = { insert: vi.fn(), delete: vi.fn(), select: vi.fn() };
 
     const config = new ConfigService(
       validateEnv({
@@ -195,6 +215,46 @@ describe('FilesService', () => {
         }),
       ).rejects.toThrow('db down');
       expect(disk.keys()).toEqual([]);
+    });
+  });
+
+  describe('bulk operations', () => {
+    const firstId = '20000000-0000-4000-8000-000000000001';
+    const secondId = '20000000-0000-4000-8000-000000000002';
+
+    it('deletes only owned rows and removes their objects in one call', async () => {
+      const rows = [
+        { id: firstId, storageKey: `files/${USER_ID}/${firstId}` },
+        { id: secondId, storageKey: `files/${USER_ID}/${secondId}` },
+      ];
+      deleteChain(rows);
+      const remove = vi
+        .spyOn(disk, 'delete')
+        .mockResolvedValue(undefined as never);
+
+      const deleted = await service.deleteMany(user, [
+        firstId,
+        secondId,
+        '30000000-0000-4000-8000-000000000000',
+      ]);
+
+      expect(deleted).toEqual([firstId, secondId]);
+      expect(remove).toHaveBeenCalledTimes(1);
+      expect(remove).toHaveBeenCalledWith(rows.map((row) => row.storageKey));
+    });
+
+    it('returns archive entries in selection order', async () => {
+      selectChain([
+        { id: firstId, name: 'first.png', storageKey: `files/${USER_ID}/${firstId}` },
+        { id: secondId, name: 'second.png', storageKey: `files/${USER_ID}/${secondId}` },
+      ]);
+
+      await expect(
+        service.archiveEntries(user, [secondId, firstId]),
+      ).resolves.toEqual([
+        { name: 'second.png', storageKey: `files/${USER_ID}/${secondId}` },
+        { name: 'first.png', storageKey: `files/${USER_ID}/${firstId}` },
+      ]);
     });
   });
 });

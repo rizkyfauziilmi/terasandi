@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
+import { FilePreviewContent } from "@/components/files/file-preview-content";
+import { FilePreviewModal } from "@/components/files/file-preview-modal";
 import { useUploadActions } from "@/components/upload/upload-provider";
 import {
   Attachment,
@@ -33,6 +35,7 @@ import {
 import { formatBytes } from "@/lib/files";
 import {
   PREVIEW_ICONS,
+  previewKindFor,
   readTextPreview,
   resolvePreviewKind,
   type FilePreviewKind,
@@ -75,7 +78,9 @@ export function UploadDialog({ maxFileSize }: UploadDialogProps) {
     [],
   );
 
-  const totalBytes = items.reduce((total, item) => total + item.size, 0);
+  const readyItems = items.filter((item) => !item.error);
+  const rejectedItems = items.filter((item) => item.error);
+  const totalBytes = readyItems.reduce((total, item) => total + item.size, 0);
 
   function revokePreviewUrl(url: string | undefined) {
     if (!url) {
@@ -110,12 +115,16 @@ export function UploadDialog({ maxFileSize }: UploadDialogProps) {
 
     const prepared = await Promise.all(
       files.map(async (file): Promise<StagedFile> => {
-        const previewKind = await resolvePreviewKind(file);
+        const error = validationError(file, maxFileSize);
+        const previewKind = error
+          ? previewKindFor(file)
+          : await resolvePreviewKind(file);
         const previewUrl =
-          previewKind === "image" ||
-          previewKind === "video" ||
-          previewKind === "audio" ||
-          previewKind === "pdf"
+          !error &&
+          (previewKind === "image" ||
+            previewKind === "video" ||
+            previewKind === "audio" ||
+            previewKind === "pdf")
             ? URL.createObjectURL(file)
             : undefined;
 
@@ -123,9 +132,8 @@ export function UploadDialog({ maxFileSize }: UploadDialogProps) {
           previewUrlsRef.current.add(previewUrl);
         }
 
-        const error = validationError(file, maxFileSize);
         const textPreview =
-          previewKind === "text" && !error
+          !error && previewKind === "text"
             ? await readTextPreview(file, previewKind)
             : undefined;
 
@@ -169,13 +177,23 @@ export function UploadDialog({ maxFileSize }: UploadDialogProps) {
     }
   }
 
+  function removeRejected() {
+    for (const item of rejectedItems) {
+      revokePreviewUrl(item.previewUrl);
+    }
+    setItems((current) => current.filter((item) => !item.error));
+    if (previewItem?.error) {
+      setPreviewItem(null);
+    }
+  }
+
   function uploadAll() {
-    if (items.length === 0) {
+    if (readyItems.length === 0 || rejectedItems.length > 0) {
       return;
     }
 
     enqueue(
-      items.map((item) => ({
+      readyItems.map((item) => ({
         id: item.id,
         file: item.file,
         name: item.name,
@@ -201,8 +219,8 @@ export function UploadDialog({ maxFileSize }: UploadDialogProps) {
           <DialogHeader>
             <DialogTitle>Upload files</DialogTitle>
             <DialogDescription>
-              Add files, review them, then upload. Progress and rejected files
-              appear in the bottom-right corner.
+              Add files, review them, then upload. Rejected files stay here and
+              are not queued; progress appears in the bottom-right corner.
             </DialogDescription>
           </DialogHeader>
 
@@ -253,21 +271,36 @@ export function UploadDialog({ maxFileSize }: UploadDialogProps) {
             </div>
           )}
 
+          {rejectedItems.length > 0 && (
+            <p className="text-xs text-destructive">
+              {rejectedItems.length}{" "}
+              {rejectedItems.length === 1 ? "file can't" : "files can't"} be uploaded.
+              Remove {rejectedItems.length === 1 ? "it" : "them"} to continue.
+            </p>
+          )}
+
           <DialogFooter>
             <span className="mr-auto text-xs text-muted-foreground">
-              {items.length} {items.length === 1 ? "file" : "files"} ·{" "}
-              {formatBytes(totalBytes)} selected
+              {readyItems.length} {readyItems.length === 1 ? "file" : "files"} ·{" "}
+              {formatBytes(totalBytes)} ready
+              {rejectedItems.length > 0 && ` · ${rejectedItems.length} rejected`}
             </span>
 
             <DialogClose render={<Button variant="outline" />}>Close</DialogClose>
 
+            {rejectedItems.length > 0 && (
+              <Button type="button" variant="ghost" size="sm" onClick={removeRejected}>
+                Remove rejected
+              </Button>
+            )}
+
             <Button
               type="button"
-              disabled={items.length === 0}
+              disabled={readyItems.length === 0 || rejectedItems.length > 0}
               onClick={uploadAll}
             >
               <UploadIcon />
-              Upload {items.length} {items.length === 1 ? "file" : "files"}
+              Upload {readyItems.length} {readyItems.length === 1 ? "file" : "files"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -367,82 +400,26 @@ interface PreviewDialogProps {
 
 function PreviewDialog({ item, onOpenChange }: PreviewDialogProps) {
   return (
-    <Dialog open={item !== null} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl">
-        <DialogHeader>
-          <DialogTitle className="truncate">
-            {item?.name ?? "Preview"}
-          </DialogTitle>
-          <DialogDescription>Preview before upload.</DialogDescription>
-        </DialogHeader>
-        {item && <FilePreview item={item} />}
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function FilePreview({ item }: { item: StagedFile }) {
-  const Icon = PREVIEW_ICONS[item.previewKind];
-
-  if (item.previewKind === "image" && item.previewUrl) {
-    return (
-      <div className="relative h-[50vh] w-full">
-        <Image
-          src={item.previewUrl}
-          alt={item.name}
-          fill
-          unoptimized
-          sizes="100vw"
-          className="object-contain"
+    <FilePreviewModal
+      open={item !== null}
+      onOpenChange={onOpenChange}
+      name={item?.name ?? "Preview"}
+      size={item?.size}
+      mimeType={item?.file.type}
+    >
+      {item && (
+        <FilePreviewContent
+          name={item.name}
+          kind={item.previewKind}
+          mediaUrl={item.previewUrl}
+          text={
+            item.previewKind === "text" ? (item.textPreview ?? "") : undefined
+          }
+          size={item.size}
+          mimeType={item.file.type}
         />
-      </div>
-    );
-  }
-
-  if (item.previewKind === "video" && item.previewUrl) {
-    return (
-      <video
-        src={item.previewUrl}
-        controls
-        className="max-h-[50vh] w-full rounded-md bg-muted"
-      />
-    );
-  }
-
-  if (item.previewKind === "audio" && item.previewUrl) {
-    return (
-      <div className="flex flex-col items-center gap-4 py-8">
-        <Icon />
-        <audio controls src={item.previewUrl} className="w-full" />
-      </div>
-    );
-  }
-
-  if (item.previewKind === "pdf" && item.previewUrl) {
-    return (
-      <iframe
-        src={item.previewUrl}
-        title={`Preview of ${item.name}`}
-        className="h-[50vh] w-full rounded-md border"
-      />
-    );
-  }
-
-  if (item.previewKind === "text") {
-    return (
-      <pre className="max-h-[50vh] overflow-auto whitespace-pre-wrap rounded-md bg-muted p-3 text-xs">
-        {item.textPreview || "No text preview available."}
-      </pre>
-    );
-  }
-
-  return (
-    <div className="flex flex-col items-center gap-2 py-8 text-muted-foreground">
-      <Icon />
-      <p className="font-medium text-foreground">{item.name}</p>
-      <p className="text-sm">{formatBytes(item.size)}</p>
-      <p className="text-xs">{item.file.type || "Unknown type"}</p>
-    </div>
+      )}
+    </FilePreviewModal>
   );
 }
 
