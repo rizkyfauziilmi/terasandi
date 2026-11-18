@@ -35,7 +35,8 @@ export type User = Omit<UserRow, 'passwordHash'>;
 
 export type NewUser = typeof users.$inferInsert;
 
-const { passwordHash, ...rest } = getTableColumns(users);
+const { passwordHash: _passwordHash, ...rest } = getTableColumns(users);
+
 /** The columns safe to select and return from a route. */
 export const publicUserColumns = rest;
 

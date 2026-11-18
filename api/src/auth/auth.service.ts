@@ -37,14 +37,9 @@ export class AuthService {
   async onboarding(body: SignUpDto): Promise<AuthResponse> {
     // Restrict registration once onboarding is done. This is the cheap check;
     // `createFirstAdmin()` is the one that holds under concurrency.
-    if (!(await this.isOnboarding())) {
-      this.logger.warn('Onboarding rejected: setup is already complete');
-      throw new ConflictException(
-        'Registration is no longer available. Please contact the administrator.',
-      );
-    }
-
-    const user = await this.usersService.createFirstAdmin(body);
+    const user =
+      (await this.isOnboarding()) &&
+      (await this.usersService.createFirstAdmin(body));
 
     if (!user) {
       this.logger.warn('Onboarding rejected: setup is already complete');

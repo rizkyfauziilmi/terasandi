@@ -1,19 +1,17 @@
-import { Module, StandardSchemaValidationPipe } from '@nestjs/common';
 import { AuthenticationModule } from '@nestjs/authentication';
 import { AuthorizationModule } from '@nestjs/authorization';
+import { Module, StandardSchemaValidationPipe } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_PIPE } from '@nestjs/core';
 import { DrizzleModule } from '@nestjs/drizzle';
 import { StorageModule } from '@nestjs/storage';
-import { REFRESH_TOKEN_TTL } from '@terasandi/contracts';
-import { drizzle } from 'drizzle-orm/node-postgres';
-import { validateEnv } from './config/env.js';
-import type { Env } from './config/env.js';
-import { relations } from './db/relations.js';
-import { createStorageOptions } from './storage/storage.config.js';
+import { createAuthenticationOptions } from './auth/auth.config.js';
 import { AuthModule } from './auth/auth.module.js';
+import { validateEnv } from './config/env.js';
+import { createDrizzleOptions } from './db/drizzle.config.js';
 import { HealthModule } from './health/health.module.js';
 import { LoggerModule } from './logger/logger.module.js';
+import { createStorageOptions } from './storage/storage.config.js';
 import { UsersModule } from './users/users.module.js';
 
 @Module({
@@ -23,34 +21,19 @@ import { UsersModule } from './users/users.module.js';
       validate: validateEnv,
     }),
     AuthenticationModule.forRootAsync({
-      useFactory: (configService: ConfigService<Env, true>) => ({
-        accessToken: {
-          key: configService.get('JWT_SECRET', { infer: true }),
-          issuer: 'terasandi',
-          audience: 'terasandi-web',
-          ttl: configService.get('ACCESS_TOKEN_TTL', { infer: true }),
-        },
-        refreshToken: {
-          ttl: REFRESH_TOKEN_TTL,
-          absoluteTtl: '90d',
-        },
-      }),
+      useFactory: createAuthenticationOptions,
       inject: [ConfigService],
     }),
     // Authentication first: its guard sets `request.user`, which `@Can()`
     // checks read. The authorization module verifies this order at startup.
     AuthorizationModule.forRoot(),
     DrizzleModule.forRootAsync({
-      useFactory: (configService: ConfigService<Env, true>) => ({
-        drizzle,
-        connection: configService.get('DATABASE_URL', { infer: true }),
-        relations,
-      }),
+      useFactory: createDrizzleOptions,
       inject: [ConfigService],
     }),
     StorageModule.forRootAsync({
-      inject: [ConfigService],
       useFactory: createStorageOptions,
+      inject: [ConfigService],
     }),
     LoggerModule,
     UsersModule,

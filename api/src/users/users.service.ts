@@ -10,7 +10,6 @@ import type { ListUsersQueryDto, Role, UserPage } from '@terasandi/contracts';
 import { and, asc, count, eq, ilike, isNull, sql } from 'drizzle-orm';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import {
-  UserRow,
   publicUserColumns,
   refreshTokenFamilies,
   users,
