@@ -9,6 +9,7 @@ import { createAuthenticationOptions } from './auth/auth.config.js';
 import { AuthModule } from './auth/auth.module.js';
 import { validateEnv } from './config/env.js';
 import { createDrizzleOptions } from './db/drizzle.config.js';
+import { FilesModule } from './files/files.module.js';
 import { HealthModule } from './health/health.module.js';
 import { LoggerModule } from './logger/logger.module.js';
 import { createStorageOptions } from './storage/storage.config.js';
@@ -38,6 +39,7 @@ import { UsersModule } from './users/users.module.js';
     LoggerModule,
     UsersModule,
     AuthModule,
+    FilesModule,
     HealthModule,
   ],
   providers: [

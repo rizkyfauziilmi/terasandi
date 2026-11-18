@@ -151,9 +151,9 @@ describe('User management (e2e)', () => {
       .expect(200);
 
     expect(admins.total).toBe(1);
-    expect(admins.items.every((u: { role: string }) => u.role === 'admin')).toBe(
-      true,
-    );
+    expect(
+      admins.items.every((u: { role: string }) => u.role === 'admin'),
+    ).toBe(true);
 
     const { body: firstPage } = await request(app.getHttpServer())
       .get('/users')
@@ -214,7 +214,9 @@ describe('User management (e2e)', () => {
     const memberSession = await signIn('member');
 
     await request(app.getHttpServer()).get('/users').expect(401);
-    await request(app.getHttpServer()).delete(`/users/${member.id}`).expect(401);
+    await request(app.getHttpServer())
+      .delete(`/users/${member.id}`)
+      .expect(401);
 
     await request(app.getHttpServer())
       .get('/users')

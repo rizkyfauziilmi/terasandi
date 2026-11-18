@@ -32,7 +32,10 @@ describe('AppLogger', () => {
   });
 
   it('honours an explicit LOG_LEVEL', () => {
-    const logger = createLogger({ NODE_ENV: 'development', LOG_LEVEL: '>=warn' });
+    const logger = createLogger({
+      NODE_ENV: 'development',
+      LOG_LEVEL: '>=warn',
+    });
 
     expect(logger.isLevelEnabled('debug')).toBe(false);
     expect(logger.isLevelEnabled('log')).toBe(false);

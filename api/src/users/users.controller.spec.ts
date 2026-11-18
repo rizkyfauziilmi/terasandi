@@ -135,7 +135,9 @@ describe('UsersController', () => {
   it('deletes an account on behalf of the signed-in admin', async () => {
     usersService.deleteUser.mockResolvedValue(undefined);
 
-    await expect(controller.delete(testAdmin, user.id)).resolves.toBeUndefined();
+    await expect(
+      controller.delete(testAdmin, user.id),
+    ).resolves.toBeUndefined();
     expect(usersService.deleteUser).toHaveBeenCalledWith(user.id, testAdmin.id);
   });
 });

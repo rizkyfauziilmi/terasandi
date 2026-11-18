@@ -14,6 +14,9 @@ const storageDefaults = {
   STORAGE_ACCESS_KEY: valid.STORAGE_ACCESS_KEY,
   STORAGE_SECRET_KEY: valid.STORAGE_SECRET_KEY,
   STORAGE_FORCE_PATH_STYLE: true,
+  UPLOAD_URL_TTL: '1h',
+  DOWNLOAD_URL_TTL: '15m',
+  MAX_FILE_SIZE_BYTES: 1024 * 1024 * 1024,
 };
 
 describe('envSchema', () => {
@@ -45,6 +48,48 @@ describe('envSchema', () => {
     expect(() =>
       envSchema.parse({ ...valid, ACCESS_TOKEN_TTL: '15 minutes' }),
     ).toThrow(/ACCESS_TOKEN_TTL/);
+  });
+
+  it('accepts custom signed URL lifetimes and a custom file size limit', () => {
+    expect(
+      envSchema.parse({
+        ...valid,
+        UPLOAD_URL_TTL: '30m',
+        DOWNLOAD_URL_TTL: '5m',
+        MAX_FILE_SIZE_BYTES: '5242880',
+      }),
+    ).toMatchObject({
+      UPLOAD_URL_TTL: '30m',
+      DOWNLOAD_URL_TTL: '5m',
+      MAX_FILE_SIZE_BYTES: 5 * 1024 * 1024,
+    });
+  });
+
+  it('rejects a malformed download URL lifetime', () => {
+    expect(() =>
+      envSchema.parse({ ...valid, DOWNLOAD_URL_TTL: 'forever' }),
+    ).toThrow(/DOWNLOAD_URL_TTL/);
+  });
+
+  it('accepts a signed URL lifetime of exactly seven days', () => {
+    expect(
+      envSchema.parse({ ...valid, UPLOAD_URL_TTL: '7d' }).UPLOAD_URL_TTL,
+    ).toBe('7d');
+  });
+
+  it('rejects signed URL lifetimes longer than seven days', () => {
+    expect(() =>
+      envSchema.parse({ ...valid, UPLOAD_URL_TTL: '8d' }),
+    ).toThrow(/UPLOAD_URL_TTL[\s\S]*at most 7 days/);
+    expect(() =>
+      envSchema.parse({ ...valid, DOWNLOAD_URL_TTL: '2w' }),
+    ).toThrow(/DOWNLOAD_URL_TTL[\s\S]*at most 7 days/);
+  });
+
+  it('rejects a non-positive file size limit', () => {
+    expect(() =>
+      envSchema.parse({ ...valid, MAX_FILE_SIZE_BYTES: '0' }),
+    ).toThrow(/MAX_FILE_SIZE_BYTES/);
   });
 
   it('rejects a non-numeric PORT', () => {

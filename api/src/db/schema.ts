@@ -1,12 +1,14 @@
-import { ROLES } from '@terasandi/contracts';
+import { FILE_CATEGORIES, ROLES } from '@terasandi/contracts';
 import { getTableColumns } from 'drizzle-orm';
 import {
+  bigint,
   index,
   jsonb,
   pgEnum,
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
 
@@ -39,6 +41,54 @@ const { passwordHash: _passwordHash, ...rest } = getTableColumns(users);
 
 /** The columns safe to select and return from a route. */
 export const publicUserColumns = rest;
+
+/** The closed set of categories, shared with the contracts and the UI. */
+export const fileCategory = pgEnum('file_category', [...FILE_CATEGORIES]);
+
+/**
+ * One row per completed upload. The object itself lives on the private disk;
+ * `storageKey` and `etag` point at that object and are never returned by a
+ * route. Every read and write is scoped by `userId`: an admin gets no special
+ * access to another user's files.
+ */
+export const files = pgTable(
+  'files',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    size: bigint('size', { mode: 'number' }).notNull(),
+    mimeType: text('mime_type').notNull(),
+    category: fileCategory('category').notNull(),
+    storageKey: text('storage_key').notNull(),
+    etag: text('etag'),
+    createdAt: at('created_at').notNull().defaultNow(),
+    updatedAt: at('updated_at')
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    index('files_user_id_created_at_idx').on(table.userId, table.createdAt),
+    index('files_user_id_category_idx').on(table.userId, table.category),
+    uniqueIndex('files_storage_key_idx').on(table.storageKey),
+  ],
+);
+
+export type FileRow = typeof files.$inferSelect;
+export type NewFile = typeof files.$inferInsert;
+
+const {
+  userId: _userId,
+  storageKey: _storageKey,
+  etag: _etag,
+  ...publicFileColumnsRest
+} = getTableColumns(files);
+
+/** The columns safe to select and return from a route. */
+export const publicFileColumns = publicFileColumnsRest;
 
 /**
  * One per sign-in. The family is a separate row so revoking it also applies to

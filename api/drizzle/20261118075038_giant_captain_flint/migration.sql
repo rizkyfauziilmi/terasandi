@@ -1,0 +1,1 @@
+ALTER TYPE "file_category" ADD VALUE 'other';

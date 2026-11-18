@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { UploadManager } from "@/components/upload/upload-manager";
+import { UploadProvider } from "@/components/upload/upload-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toast";
 
@@ -33,8 +35,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           enableSystem
           disableTransitionOnChange
         >
-          {children}
-          <Toaster />
+          <UploadProvider>
+            {children}
+            <UploadManager />
+            <Toaster />
+          </UploadProvider>
         </ThemeProvider>
       </body>
     </html>

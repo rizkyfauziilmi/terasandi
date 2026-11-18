@@ -1,0 +1,40 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "19484bb3-4323-49f1-84c6-35998d85c69c",
+  "prevIds": [
+    "b406076f-da7d-4d32-9872-6f744369ef1f"
+  ],
+  "footprints": [
+    {
+      "statementType": "alter_enum",
+      "statementTarget": [
+        "enum",
+        "public",
+        "file_category"
+      ],
+      "writes": [
+        "s|enum|public.file_category"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "alter",
+      "key": "enums\u0000[\"public\",\"file_category\"]",
+      "set": {
+        "values": [
+          "document",
+          "image",
+          "audio",
+          "video",
+          "other"
+        ]
+      }
+    }
+  ]
+}

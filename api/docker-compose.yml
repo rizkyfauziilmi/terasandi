@@ -30,6 +30,9 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-terasandi}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-terasandi-dev-secret}
       STORAGE_BUCKET: ${STORAGE_BUCKET:-terasandi-files}
+      # Community MinIO serves global CORS only; per-bucket `mc cors set` is
+      # AIStor-only. The browser PUTs signed uploads straight to this endpoint.
+      MINIO_API_CORS_ALLOW_ORIGIN: ${WEB_ORIGIN:-http://localhost:3000}
     ports:
       - '${MINIO_API_PORT:-9000}:9000'
       - '${MINIO_CONSOLE_PORT:-9001}:9001'
@@ -48,10 +51,27 @@ services:
           - /bin/sh
           - -c
           - |
+            set -e
             until mc ready local; do sleep 1; done
             mc alias set local http://localhost:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD"
             mc mb --ignore-existing "local/$$STORAGE_BUCKET"
             mc anonymous set none "local/$$STORAGE_BUCKET"
+
+            # Uploads that never reach POST /files are removed after a day.
+            # Import replaces the lifecycle config, so restarts stay idempotent.
+            mc ilm rule import "local/$$STORAGE_BUCKET" <<EOF
+            {
+              "Rules": [
+                {
+                  "ID": "expire-incoming-uploads",
+                  "Status": "Enabled",
+                  "Filter": { "Prefix": "incoming/" },
+                  "Expiration": { "Days": 1 },
+                  "AbortIncompleteMultipartUpload": { "DaysAfterInitiation": 1 }
+                }
+              ]
+            }
+            EOF
 
 volumes:
   postgres_data:

@@ -23,7 +23,8 @@ const REDACTED_KEYS = [
 @Injectable()
 export class AppLogger extends ConsoleLogger {
   constructor(config: ConfigService<Env, true>) {
-    const isProduction = config.get('NODE_ENV', { infer: true }) === 'production';
+    const isProduction =
+      config.get('NODE_ENV', { infer: true }) === 'production';
     const level =
       config.get('LOG_LEVEL', { infer: true }) ??
       (isProduction ? '>=log' : '>=debug');

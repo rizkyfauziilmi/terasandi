@@ -1,10 +1,7 @@
 import type { RefreshTokenRecord } from '@nestjs/authentication';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { vi } from 'vitest';
-import {
-  refreshTokenFamilies,
-  refreshTokens,
-} from '../db/schema.js';
+import { refreshTokenFamilies, refreshTokens } from '../db/schema.js';
 import { DrizzleRefreshTokenStore } from './refresh-token.store.js';
 
 const now = new Date('2026-01-01T00:00:00.000Z');
@@ -69,9 +66,7 @@ describe('DrizzleRefreshTokenStore', () => {
 
   describe('getRefreshToken', () => {
     it('maps a row and omits unset optional fields', async () => {
-      const { chain } = selectRows([
-        { ...record, usedAt: null, claims: null },
-      ]);
+      const { chain } = selectRows([{ ...record, usedAt: null, claims: null }]);
       db.select.mockReturnValue(chain);
 
       const found = await store.getRefreshToken(record.id);
@@ -162,9 +157,9 @@ describe('DrizzleRefreshTokenStore', () => {
       const { chain, set, where, returning } = updateRows([{ id: record.id }]);
       db.update.mockReturnValue(chain);
 
-      await expect(
-        store.markRefreshTokenUsed(record.id, now),
-      ).resolves.toBe(true);
+      await expect(store.markRefreshTokenUsed(record.id, now)).resolves.toBe(
+        true,
+      );
       expect(db.update).toHaveBeenCalledWith(refreshTokens);
       expect(set).toHaveBeenCalledWith({ usedAt: now });
       expect(where).toHaveBeenCalledTimes(1);
@@ -175,9 +170,9 @@ describe('DrizzleRefreshTokenStore', () => {
       const { chain } = updateRows([]);
       db.update.mockReturnValue(chain);
 
-      await expect(
-        store.markRefreshTokenUsed(record.id, now),
-      ).resolves.toBe(false);
+      await expect(store.markRefreshTokenUsed(record.id, now)).resolves.toBe(
+        false,
+      );
     });
   });
 
@@ -220,9 +215,9 @@ describe('DrizzleRefreshTokenStore', () => {
       const { chain } = selectRows([]);
       db.select.mockReturnValue(chain);
 
-      await expect(
-        store.isRefreshTokenFamilyRevoked('missing'),
-      ).resolves.toBe(false);
+      await expect(store.isRefreshTokenFamilyRevoked('missing')).resolves.toBe(
+        false,
+      );
     });
   });
 
