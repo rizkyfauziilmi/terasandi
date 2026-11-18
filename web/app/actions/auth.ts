@@ -1,8 +1,9 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { ApiError, postAuth, revokeSession } from "@/lib/api";
-import type { AuthPath } from "@/lib/api";
+import { postAuth, revokeSession } from "@/lib/api/auth";
+import type { AuthPath } from "@/lib/api/auth";
+import { apiErrorMessage } from "@/lib/api/client";
 import {
   clearAuthCookies,
   getRefreshToken,
@@ -29,9 +30,7 @@ export async function onboardingAction(
   return authenticate("/auth/onboarding", { username, password });
 }
 
-export async function signInAction(
-  input: SignInDto,
-): Promise<AuthActionState> {
+export async function signInAction(input: SignInDto): Promise<AuthActionState> {
   const parsed = signInSchema.safeParse(input);
 
   if (!parsed.success) {
@@ -46,7 +45,7 @@ export async function signOutAction(): Promise<void> {
 
   if (refreshToken && !(await revokeSession(refreshToken))) {
     // Best effort: the local session still ends, but the token stays valid
-    // server-side until it expires, so the failure must be visible.
+    // server-side until it expires, so the failure is at least recorded.
     console.error(
       "Sign-out: the API did not revoke the refresh token; it will expire on its own.",
     );
@@ -65,12 +64,7 @@ async function authenticate(
   try {
     response = await postAuth(path, credentials);
   } catch (error) {
-    return {
-      error:
-        error instanceof ApiError
-          ? error.message
-          : "Something went wrong. Please try again.",
-    };
+    return { error: apiErrorMessage(error) };
   }
 
   await setAuthCookies(response);

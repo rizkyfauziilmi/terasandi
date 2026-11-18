@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { SearchIcon } from "lucide-react";
 import {
   InputGroup,
@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { usersFilterHref } from "@/lib/users-query";
 
 /** The "all" sentinel is a UI value; the URL simply drops the filter. */
 const ROLE_OPTIONS = [
@@ -28,7 +29,6 @@ const ROLE_OPTIONS = [
 /** Search and role filters. Each change rewrites the URL and resets the page. */
 export function UsersFilters() {
   const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
 
@@ -41,30 +41,16 @@ export function UsersFilters() {
 
   const apply = useCallback(
     (changes: { q?: string; role?: string }) => {
-      const params = new URLSearchParams(searchParams.toString());
-
-      for (const [key, value] of Object.entries(changes)) {
-        if (value) {
-          params.set(key, value);
-        } else {
-          params.delete(key);
-        }
-      }
-
       if (changes.q !== undefined) {
         appliedQuery.current = changes.q;
       }
 
-      params.delete("page");
-
-      const next = params.toString();
+      const href = usersFilterHref(searchParams.toString(), changes);
       startTransition(() => {
-        router.replace(next ? `${pathname}?${next}` : pathname, {
-          scroll: false,
-        });
+        router.replace(href, { scroll: false });
       });
     },
-    [pathname, router, searchParams],
+    [router, searchParams],
   );
 
   useEffect(() => {

@@ -7,8 +7,7 @@ import { signUpFormSchema } from "@/lib/auth-form-schema";
 import { notifyError } from "@/lib/notify";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { PasswordField } from "../_components/password-field";
-import { TextField } from "../_components/text-field";
+import { PasswordField, TextField } from "@/components/form";
 
 export default function Onboarding() {
   const form = useForm<SignUpForm>({

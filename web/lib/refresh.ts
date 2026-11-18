@@ -1,5 +1,5 @@
-import type { RefreshOutcome } from "./api";
-import { refreshSession } from "./api";
+import type { RefreshOutcome } from "./api/auth";
+import { refreshSession } from "./api/auth";
 
 /**
  * Requests already waiting on the same refresh token. Two concurrent renders

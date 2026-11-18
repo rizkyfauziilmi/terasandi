@@ -1,7 +1,7 @@
 import type { AuthTokens } from "@terasandi/contracts";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getIsOnboarding } from "@/lib/api";
+import { getIsOnboarding } from "@/lib/api/auth";
 import {
   ACCESS_TOKEN_COOKIE,
   REFRESH_TOKEN_COOKIE,
@@ -69,7 +69,10 @@ export async function proxy(request: NextRequest) {
   }
 
   return redirectTo(
-    new URL(isOnboarding === true ? ONBOARDING_PATH : SIGN_IN_PATH, request.url),
+    new URL(
+      isOnboarding === true ? ONBOARDING_PATH : SIGN_IN_PATH,
+      request.url,
+    ),
     tokens,
     rejected,
   );
@@ -98,11 +101,7 @@ function passThrough(
   return response;
 }
 
-function redirectTo(
-  url: URL,
-  tokens: AuthTokens | null,
-  rejected: boolean,
-) {
+function redirectTo(url: URL, tokens: AuthTokens | null, rejected: boolean) {
   const response = NextResponse.redirect(url);
   attachCookies(response, tokens);
 

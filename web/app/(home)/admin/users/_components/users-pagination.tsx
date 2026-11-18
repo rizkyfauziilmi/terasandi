@@ -2,6 +2,7 @@ import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import Link from "next/link";
 import type { ListUsersQueryDto } from "@terasandi/contracts";
 import { Button } from "@/components/ui/button";
+import { usersHref } from "@/lib/users-query";
 import {
   Pagination,
   PaginationContent,
@@ -23,24 +24,7 @@ export function UsersPagination({ query, total }: UsersPaginationProps) {
     return null;
   }
 
-  const hrefFor = (page: number) => {
-    const params = new URLSearchParams();
-
-    if (query.q) {
-      params.set("q", query.q);
-    }
-
-    if (query.role) {
-      params.set("role", query.role);
-    }
-
-    if (page > 1) {
-      params.set("page", String(page));
-    }
-
-    const search = params.toString();
-    return search ? `/admin/users?${search}` : "/admin/users";
-  };
+  const hrefFor = (page: number) => usersHref(query, page);
 
   return (
     <div className="flex items-center justify-between gap-4">
@@ -96,7 +80,12 @@ interface PageButtonProps {
   icon?: "start" | "end";
 }
 
-function PageButton({ href, disabled, label, icon = "start" }: PageButtonProps) {
+function PageButton({
+  href,
+  disabled,
+  label,
+  icon = "start",
+}: PageButtonProps) {
   const chevron =
     icon === "start" ? (
       <ChevronLeftIcon data-icon="inline-start" />

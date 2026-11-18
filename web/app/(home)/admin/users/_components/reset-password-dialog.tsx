@@ -16,8 +16,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { FieldGroup } from "@/components/ui/field";
+import { PasswordField } from "@/components/form";
 import { notifyError, notifySuccess } from "@/lib/notify";
-import { FormPasswordField } from "./form-field";
 
 interface ResetPasswordDialogProps {
   user: AuthUser;
@@ -74,10 +74,12 @@ export function ResetPasswordDialog({
         </DialogHeader>
         <form id={formId} onSubmit={form.handleSubmit(onSubmit)}>
           <FieldGroup>
-            <FormPasswordField
+            <PasswordField
               control={form.control}
               name="password"
               label="New password"
+              idPrefix="admin"
+              autoComplete="new-password"
             />
           </FieldGroup>
         </form>

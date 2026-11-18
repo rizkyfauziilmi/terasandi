@@ -4,53 +4,10 @@ import type {
   AuthUser,
   SignInDto,
 } from "@terasandi/contracts";
+import { ApiError, postJson, request } from "./client";
 
 /** The two endpoints that issue a session. */
 export type AuthPath = "/auth/onboarding" | "/auth/sign-in";
-
-/** A failed API call: a non-2xx answer, or `0` when the API is unreachable. */
-export class ApiError extends Error {
-  constructor(
-    readonly status: number,
-    message: string,
-  ) {
-    super(message);
-    this.name = "ApiError";
-  }
-}
-
-export const API_URL = process.env.API_URL ?? "http://localhost:3001";
-
-const UNREACHABLE =
-  "Unable to reach the server. Please try again in a moment.";
-
-/**
- * One call to the API. A network failure and a non-2xx answer both surface as
- * an `ApiError`, so every caller maps a single error type. A `204` resolves to
- * `undefined`; anything else is parsed as JSON.
- */
-export async function request<T>(
-  path: string,
-  init: RequestInit = {},
-): Promise<T> {
-  let response: Response;
-
-  try {
-    response = await fetch(`${API_URL}${path}`, init);
-  } catch {
-    throw new ApiError(0, UNREACHABLE);
-  }
-
-  if (!response.ok) {
-    throw new ApiError(response.status, await readErrorMessage(response));
-  }
-
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
-  return (await response.json()) as T;
-}
 
 /** Whether the API still needs its first user. `null` when it can't be reached. */
 export async function getIsOnboarding(): Promise<boolean | null> {
@@ -111,6 +68,10 @@ export async function revokeSession(refreshToken: string): Promise<boolean> {
   }
 }
 
+/**
+ * The signed-in user, or `null` when the API rejects the token. Other failures
+ * are propagated so an outage is not mistaken for a signed-out session.
+ */
 export async function fetchCurrentUser(
   accessToken: string,
 ): Promise<AuthUser | null> {
@@ -119,44 +80,11 @@ export async function fetchCurrentUser(
       headers: { Authorization: `Bearer ${accessToken}` },
       cache: "no-store",
     });
-  } catch {
-    return null;
-  }
-}
-
-/** A JSON `POST` to the API. */
-function postJson<T>(path: string, body: unknown): Promise<T> {
-  return request<T>(path, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-}
-
-/** Nest errors look like `{ message, error, statusCode }`. */
-export async function readErrorMessage(response: Response): Promise<string> {
-  try {
-    const body = (await response.json()) as { message?: unknown };
-
-    if (typeof body.message === "string" && body.message) {
-      return body.message;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) {
+      return null;
     }
 
-    if (Array.isArray(body.message) && body.message.length > 0) {
-      return body.message.join(". ");
-    }
-  } catch {
-    // Fall through to a status-based message.
-  }
-
-  switch (response.status) {
-    case 400:
-      return "The submitted values are invalid.";
-    case 401:
-      return "Invalid username or password.";
-    case 409:
-      return "That username is already taken.";
-    default:
-      return "Something went wrong. Please try again.";
+    throw error;
   }
 }

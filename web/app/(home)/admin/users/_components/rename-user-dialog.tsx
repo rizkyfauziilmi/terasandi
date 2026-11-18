@@ -16,8 +16,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { FieldGroup } from "@/components/ui/field";
+import { TextField } from "@/components/form";
 import { notifyError, notifySuccess } from "@/lib/notify";
-import { FormField } from "./form-field";
 
 interface RenameUserDialogProps {
   user: AuthUser;
@@ -65,11 +65,12 @@ export function RenameUserDialog({
         </DialogHeader>
         <form id={formId} onSubmit={form.handleSubmit(onSubmit)}>
           <FieldGroup>
-            <FormField
+            <TextField
               control={form.control}
               name="username"
               label="Username"
               placeholder="jane_doe"
+              idPrefix="admin"
             />
           </FieldGroup>
         </form>

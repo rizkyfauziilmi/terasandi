@@ -40,8 +40,13 @@ export function ConfirmActionDialog({
 
   async function confirm() {
     setIsPending(true);
-    const result = await action();
-    setIsPending(false);
+    let result: UserActionState;
+
+    try {
+      result = await action();
+    } finally {
+      setIsPending(false);
+    }
 
     if ("error" in result) {
       notifyError(title, result.error);

@@ -1,3 +1,5 @@
+"use client";
+
 import type { Control, FieldPath, FieldValues } from "react-hook-form";
 import { Controller } from "react-hook-form";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
@@ -8,6 +10,8 @@ interface TextFieldProps<T extends FieldValues> {
   name: FieldPath<T>;
   label: string;
   placeholder?: string;
+  idPrefix?: string;
+  autoComplete?: string;
 }
 
 /** A controlled text input with its label and validation message. */
@@ -16,8 +20,10 @@ export function TextField<T extends FieldValues>({
   name,
   label,
   placeholder,
+  idPrefix = "form",
+  autoComplete = "off",
 }: TextFieldProps<T>) {
-  const id = `form-${name}`;
+  const id = `${idPrefix}-${name}`;
 
   return (
     <Controller
@@ -31,7 +37,7 @@ export function TextField<T extends FieldValues>({
             id={id}
             aria-invalid={fieldState.invalid}
             placeholder={placeholder}
-            autoComplete="off"
+            autoComplete={autoComplete}
             required
           />
           {fieldState.invalid && <FieldError errors={[fieldState.error]} />}

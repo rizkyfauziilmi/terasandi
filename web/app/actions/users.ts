@@ -15,11 +15,10 @@ import type {
 import { revalidatePath } from "next/cache";
 import type { ZodType } from "zod";
 import { requireAdmin } from "@/lib/admin";
-import { ApiError } from "@/lib/api";
+import { apiErrorMessage } from "@/lib/api/client";
 import { mutateWithSession } from "@/lib/api-authenticated";
 import { firstIssue } from "@/lib/forms";
-
-const USERS_PATH = "/admin/users";
+import { USERS_PATH } from "@/lib/users-query";
 
 /** The result of an admin mutation: either a message to show, or success. */
 export type UserActionState = { error: string } | { ok: true };
@@ -95,12 +94,7 @@ async function run(request: () => Promise<unknown>): Promise<UserActionState> {
   try {
     await request();
   } catch (error) {
-    return {
-      error:
-        error instanceof ApiError
-          ? error.message
-          : "Something went wrong. Please try again.",
-    };
+    return { error: apiErrorMessage(error) };
   }
 
   revalidatePath(USERS_PATH);

@@ -17,6 +17,8 @@ interface PasswordFieldProps<T extends FieldValues> {
   name: FieldPath<T>;
   label?: string;
   placeholder?: string;
+  idPrefix?: string;
+  autoComplete?: string;
 }
 
 /** A password input with a label, a visibility toggle, and its error message. */
@@ -25,9 +27,11 @@ export function PasswordField<T extends FieldValues>({
   name,
   label = "Password",
   placeholder = "secret_password",
+  idPrefix = "form",
+  autoComplete = "off",
 }: PasswordFieldProps<T>) {
   const [visible, setVisible] = useState(false);
-  const id = `form-${name}`;
+  const id = `${idPrefix}-${name}`;
 
   return (
     <Controller
@@ -42,7 +46,7 @@ export function PasswordField<T extends FieldValues>({
               id={id}
               aria-invalid={fieldState.invalid}
               placeholder={placeholder}
-              autoComplete="off"
+              autoComplete={autoComplete}
               type={visible ? "text" : "password"}
               required
             />

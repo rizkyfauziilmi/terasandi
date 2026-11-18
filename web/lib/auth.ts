@@ -1,6 +1,6 @@
 import type { AuthUser } from "@terasandi/contracts";
 import { cookies } from "next/headers";
-import { fetchCurrentUser } from "./api";
+import { fetchCurrentUser } from "./api/auth";
 import { ACCESS_TOKEN_COOKIE } from "./auth-cookie";
 
 /**

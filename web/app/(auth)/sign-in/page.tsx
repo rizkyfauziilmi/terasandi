@@ -7,8 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { signInSchema } from "@terasandi/contracts";
 import type { SignInDto } from "@terasandi/contracts";
 import { useForm } from "react-hook-form";
-import { TextField } from "../_components/text-field";
-import { PasswordField } from "../_components/password-field";
+import { PasswordField, TextField } from "@/components/form";
 
 export default function SignIn() {
   const form = useForm<SignInDto>({

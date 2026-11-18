@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { ApiError, request } from "./api";
+import { ApiError, request } from "./api/client";
 import { ACCESS_TOKEN_COOKIE } from "./auth-cookie";
 
 /**

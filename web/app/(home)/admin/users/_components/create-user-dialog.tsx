@@ -19,8 +19,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { FieldGroup } from "@/components/ui/field";
+import { PasswordField, TextField } from "@/components/form";
 import { notifyError, notifySuccess } from "@/lib/notify";
-import { FormField, FormPasswordField } from "./form-field";
 
 const FORM_ID = "admin-create-user";
 
@@ -70,16 +70,19 @@ export function CreateUserDialog() {
         </DialogHeader>
         <form id={FORM_ID} onSubmit={form.handleSubmit(onSubmit)}>
           <FieldGroup>
-            <FormField
+            <TextField
               control={form.control}
               name="username"
               label="Username"
               placeholder="jane_doe"
+              idPrefix="admin"
             />
-            <FormPasswordField
+            <PasswordField
               control={form.control}
               name="password"
               label="Password"
+              idPrefix="admin"
+              autoComplete="new-password"
             />
           </FieldGroup>
         </form>
