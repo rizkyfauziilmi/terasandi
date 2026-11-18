@@ -1,8 +1,11 @@
 import {
   FileArchiveIcon,
+  FileCodeIcon,
+  FileSpreadsheetIcon,
   FileTextIcon,
   ImageIcon,
   MusicIcon,
+  PresentationIcon,
   VideoIcon,
   type LucideIcon,
 } from "lucide-react";
@@ -13,6 +16,11 @@ export type FilePreviewKind =
   | "audio"
   | "pdf"
   | "text"
+  | "markdown"
+  | "docx"
+  | "spreadsheet"
+  | "presentation"
+  | "archive"
   | "file";
 
 export const PREVIEW_ICONS: Record<FilePreviewKind, LucideIcon> = {
@@ -20,7 +28,12 @@ export const PREVIEW_ICONS: Record<FilePreviewKind, LucideIcon> = {
   video: VideoIcon,
   audio: MusicIcon,
   pdf: FileTextIcon,
-  text: FileTextIcon,
+  text: FileCodeIcon,
+  markdown: FileCodeIcon,
+  docx: FileTextIcon,
+  spreadsheet: FileSpreadsheetIcon,
+  presentation: PresentationIcon,
+  archive: FileArchiveIcon,
   file: FileArchiveIcon,
 };
 
@@ -31,14 +44,8 @@ const IMAGE_EXTENSIONS = new Set([
   "gif",
   "webp",
   "avif",
-  "heic",
-  "heif",
   "bmp",
-  "tif",
-  "tiff",
-  "svg",
   "ico",
-  "psd",
 ]);
 
 const VIDEO_EXTENSIONS = new Set([
@@ -46,15 +53,7 @@ const VIDEO_EXTENSIONS = new Set([
   "m4v",
   "mov",
   "webm",
-  "mkv",
-  "avi",
-  "mpg",
-  "mpeg",
-  "wmv",
-  "flv",
-  "3gp",
   "ogv",
-  "ts",
 ]);
 
 const AUDIO_EXTENSIONS = new Set([
@@ -62,22 +61,16 @@ const AUDIO_EXTENSIONS = new Set([
   "wav",
   "ogg",
   "opus",
-  "flac",
   "m4a",
   "aac",
-  "wma",
   "mid",
   "midi",
-  "aiff",
 ]);
 
 const TEXT_EXTENSIONS = new Set([
   "txt",
-  "md",
-  "markdown",
   "json",
   "jsonl",
-  "csv",
   "xml",
   "yaml",
   "yml",
@@ -118,6 +111,7 @@ const TEXT_EXTENSIONS = new Set([
   "svg",
   "env",
   "gitignore",
+  "dockerfile",
 ]);
 
 const TEXT_MIME_TYPES = new Set([
@@ -133,7 +127,82 @@ const TEXT_MIME_TYPES = new Set([
   "application/x-powershell",
 ]);
 
+const MARKDOWN_EXTENSIONS = new Set(["md", "markdown"]);
+
+const DOCX_MIME_TYPES = new Set([
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]);
+
+const SPREADSHEET_EXTENSIONS = new Set(["xlsx", "csv", "tsv"]);
+
+const SPREADSHEET_MIME_TYPES = new Set([
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "text/csv",
+  "tab-separated-values",
+]);
+
+const PRESENTATION_EXTENSIONS = new Set(["pptx"]);
+const PRESENTATION_MIME_TYPES = new Set([
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+]);
+
+const ARCHIVE_EXTENSIONS = new Set(["zip", "epub"]);
+const ARCHIVE_MIME_TYPES = new Set([
+  "application/zip",
+  "application/x-zip-compressed",
+  "application/epub+zip",
+]);
+
+/**
+ * Formats that need a native app or can execute active content. They always
+ * fall back to metadata + download, even when the browser reports a generic
+ * image/video MIME type for them.
+ */
+const FALLBACK_EXTENSIONS = new Set([
+  "heic",
+  "heif",
+  "tif",
+  "tiff",
+  "psd",
+  "ai",
+  "eps",
+  "sketch",
+  "fig",
+  "dwg",
+  "dxf",
+  "doc",
+  "xls",
+  "ppt",
+  "rtf",
+  "odt",
+  "ods",
+  "odp",
+  "rar",
+  "7z",
+  "mkv",
+  "avi",
+  "wmv",
+  "flv",
+  "3gp",
+  "exe",
+  "dll",
+  "so",
+  "dylib",
+  "bin",
+  "apk",
+  "deb",
+  "msi",
+  "iso",
+  "img",
+  "vhd",
+  "vmdk",
+  "qcow2",
+]);
+
 export const TEXT_PREVIEW_BYTES = 16 * 1024;
+
+/** Hard cap for in-browser Office/archive parsing; original files are untouched. */
+export const MAX_PREVIEW_BYTES = 25 * 1024 * 1024;
 
 /** The bits of a file needed to choose a preview strategy. */
 export interface PreviewMeta {
@@ -146,17 +215,43 @@ export function previewKindForMeta({ name, type }: PreviewMeta): FilePreviewKind
   const mime = type.trim().toLowerCase();
   const ext = extensionOf(name);
 
+  if (FALLBACK_EXTENSIONS.has(ext)) {
+    return "file";
+  }
+
+  if (MARKDOWN_EXTENSIONS.has(ext)) {
+    return "markdown";
+  }
+  if (DOCX_MIME_TYPES.has(mime) || ext === "docx") {
+    return "docx";
+  }
+  if (
+    SPREADSHEET_MIME_TYPES.has(mime) ||
+    SPREADSHEET_EXTENSIONS.has(ext)
+  ) {
+    return "spreadsheet";
+  }
+  if (
+    PRESENTATION_MIME_TYPES.has(mime) ||
+    PRESENTATION_EXTENSIONS.has(ext)
+  ) {
+    return "presentation";
+  }
+  if (ARCHIVE_MIME_TYPES.has(mime) || ARCHIVE_EXTENSIONS.has(ext)) {
+    return "archive";
+  }
+  if (mime === "application/pdf" || ext === "pdf") {
+    return "pdf";
+  }
   if (mime.startsWith("image/") || IMAGE_EXTENSIONS.has(ext)) {
-    return "image";
+    // SVG may contain scripts; show its source instead of executing it.
+    return ext === "svg" || mime === "image/svg+xml" ? "text" : "image";
   }
   if (mime.startsWith("video/") || VIDEO_EXTENSIONS.has(ext)) {
     return "video";
   }
   if (mime.startsWith("audio/") || AUDIO_EXTENSIONS.has(ext)) {
     return "audio";
-  }
-  if (mime === "application/pdf" || ext === "pdf") {
-    return "pdf";
   }
   if (
     mime.startsWith("text/") ||
@@ -193,7 +288,7 @@ export async function readTextPreview(
   file: File,
   kind: FilePreviewKind = previewKindFor(file),
 ): Promise<string | undefined> {
-  if (kind !== "text") {
+  if (kind !== "text" && kind !== "markdown") {
     return undefined;
   }
 

@@ -30,8 +30,7 @@ export function FilePreviewDialog({
         active={open}
         name={file.name}
         kind={kind}
-        mediaUrl={url}
-        textUrl={url}
+        url={url}
         size={file.size}
         mimeType={file.mimeType}
       />

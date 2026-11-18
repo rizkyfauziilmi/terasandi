@@ -2,26 +2,39 @@
 
 import { TriangleAlertIcon } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { HeavyRenderer } from "@/components/files/preview/registry";
 import {
+  PreviewEmpty,
+  PreviewLoading,
+} from "@/components/files/preview/preview-status";
+import {
+  previewTooLarge,
+  readPreviewText,
+  type PreviewSource,
+} from "@/components/files/preview/types";
+import {
+  MAX_PREVIEW_BYTES,
   PREVIEW_ICONS,
-  TEXT_PREVIEW_BYTES,
   type FilePreviewKind,
 } from "@/lib/file-previews";
 import { formatBytes } from "@/lib/files";
 
-/**
- * Shared preview renderer. Callers only adapt their source:
- * a local object URL and pre-read text, or a session-protected stream URL.
- */
+const PARSED_KINDS = new Set<FilePreviewKind>([
+  "docx",
+  "spreadsheet",
+  "presentation",
+  "archive",
+]);
+const LAZY_KINDS = new Set<FilePreviewKind>([...PARSED_KINDS, "markdown"]);
+
+/** Normalized props: callers choose only where the bytes come from. */
 export interface FilePreviewContentProps {
   name: string;
   kind: FilePreviewKind;
-  mediaUrl?: string;
-  /** Already loaded text, used by locally staged files. */
+  file?: File;
+  url?: string;
   text?: string;
-  /** URL to stream a text prefix from, used by stored files. */
-  textUrl?: string;
   mimeType?: string;
   size?: number;
   active?: boolean;
@@ -30,72 +43,100 @@ export interface FilePreviewContentProps {
 export function FilePreviewContent({
   name,
   kind,
-  mediaUrl,
+  file,
+  url,
   text,
-  textUrl,
   mimeType,
   size,
   active = true,
 }: FilePreviewContentProps) {
-  const [failed, setFailed] = useState(false);
-  const Icon = PREVIEW_ICONS[kind];
+  const sourceKey = `${kind}:${name}:${url ?? ""}:${file?.name ?? ""}`;
+  const [failureKey, setFailureKey] = useState<string | null>(null);
+  const handleError = useCallback(
+    () => setFailureKey(sourceKey),
+    [sourceKey],
+  );
+  const failed = failureKey === sourceKey;
+  const source: PreviewSource = {
+    name,
+    file,
+    url,
+    text,
+    mimeType,
+    size,
+    active,
+  };
 
   if (failed) {
     return <Unavailable message="This file could not be previewed." />;
   }
 
+  if (PARSED_KINDS.has(kind) && previewTooLarge(source)) {
+    return (
+      <Unavailable
+        message={`Preview is limited to ${formatBytes(MAX_PREVIEW_BYTES)}. Download the file to view it.`}
+      />
+    );
+  }
+
+  if (LAZY_KINDS.has(kind)) {
+    return <HeavyRenderer kind={kind} {...source} onError={handleError} />;
+  }
+
+  const Icon = PREVIEW_ICONS[kind];
+
   switch (kind) {
     case "image":
-      if (!mediaUrl) {
+      if (!url) {
         return <Unavailable message="Preview isn't available for this file." />;
       }
       return (
         <div className="relative h-[50vh] w-full">
           <Image
-            src={mediaUrl}
+            src={url}
             alt={name}
             fill
             unoptimized
             sizes="100vw"
             className="object-contain"
-            onError={() => setFailed(true)}
+            onError={handleError}
           />
         </div>
       );
     case "video":
-      if (!mediaUrl) {
+      if (!url) {
         return <Unavailable message="Preview isn't available for this file." />;
       }
       return (
         <video
-          src={mediaUrl}
+          src={url}
           controls
           className="max-h-[50vh] w-full rounded-md bg-muted"
-          onError={() => setFailed(true)}
+          onError={handleError}
         />
       );
     case "audio":
-      if (!mediaUrl) {
+      if (!url) {
         return <Unavailable message="Preview isn't available for this file." />;
       }
       return (
         <div className="flex flex-col items-center gap-4 py-8">
           <Icon className="size-10 text-muted-foreground" />
           <audio
-            src={mediaUrl}
+            src={url}
             controls
             className="w-full"
-            onError={() => setFailed(true)}
+            onError={handleError}
           />
         </div>
       );
     case "pdf":
-      if (!mediaUrl) {
+      if (!url) {
         return <Unavailable message="Preview isn't available for this file." />;
       }
       return (
         <iframe
-          src={mediaUrl}
+          src={url}
           title={`Preview of ${name}`}
           className="h-[50vh] w-full rounded-md border"
         />
@@ -108,8 +149,17 @@ export function FilePreviewContent({
           </pre>
         );
       }
-      if (textUrl) {
-        return <StreamedTextPreview url={textUrl} active={active} />;
+      if (url) {
+        return (
+          <TextPreview
+            name={name}
+            file={file}
+            text={text}
+            url={url}
+            active={active}
+            onError={handleError}
+          />
+        );
       }
       return <Unavailable message="Preview isn't available for this file." />;
     default:
@@ -127,9 +177,22 @@ export function FilePreviewContent({
   }
 }
 
-function StreamedTextPreview({ url, active }: { url: string; active: boolean }) {
-  const [text, setText] = useState<string | null>(null);
-  const [failed, setFailed] = useState(false);
+function TextPreview({
+  name,
+  file,
+  text,
+  url,
+  active,
+  onError,
+}: {
+  name: string;
+  file?: File;
+  text?: string;
+  url: string;
+  active: boolean;
+  onError: () => void;
+}) {
+  const [content, setContent] = useState<string | null>(null);
 
   useEffect(() => {
     if (!active) {
@@ -140,64 +203,35 @@ function StreamedTextPreview({ url, active }: { url: string; active: boolean }) 
 
     async function load() {
       try {
-        const response = await fetch(url, { signal: controller.signal });
-
-        if (!response.ok || !response.body) {
-          throw new Error("Preview unavailable");
-        }
-
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let output = "";
-        let bytes = 0;
-
-        while (bytes < TEXT_PREVIEW_BYTES) {
-          const { done, value } = await reader.read();
-          if (done) {
-            break;
-          }
-
-          const slice = value.subarray(0, TEXT_PREVIEW_BYTES - bytes);
-          output += decoder.decode(slice, { stream: true });
-          bytes += slice.length;
-
-          if (slice.length < value.length) {
-            break;
-          }
-        }
-
-        output += decoder.decode();
-        await reader.cancel().catch(() => undefined);
-
+        const value = await readPreviewText(
+          { name, file, text, url, active },
+          controller.signal,
+        );
         if (!controller.signal.aborted) {
-          setText(output.replace(/\0/g, "").trimEnd());
+          setContent(value);
         }
       } catch {
         if (!controller.signal.aborted) {
-          setFailed(true);
+          onError();
         }
       }
     }
 
     void load();
     return () => controller.abort();
-  }, [url, active]);
+  }, [active, file, name, onError, text, url]);
 
-  if (failed) {
-    return <Unavailable message="This file could not be previewed." />;
+  if (content === null) {
+    return <PreviewLoading />;
   }
 
-  if (text === null) {
-    return (
-      <p className="py-8 text-center text-sm text-muted-foreground">
-        Loading preview…
-      </p>
-    );
+  if (!content.trim()) {
+    return <PreviewEmpty label="No text preview available." />;
   }
 
   return (
     <pre className="max-h-[50vh] overflow-auto whitespace-pre-wrap rounded-md bg-muted p-3 text-xs">
-      {text || "No text preview available."}
+      {content}
     </pre>
   );
 }

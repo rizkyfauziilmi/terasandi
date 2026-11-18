@@ -133,7 +133,7 @@ export function UploadDialog({ maxFileSize }: UploadDialogProps) {
         }
 
         const textPreview =
-          !error && previewKind === "text"
+          !error && (previewKind === "text" || previewKind === "markdown")
             ? await readTextPreview(file, previewKind)
             : undefined;
 
@@ -411,9 +411,12 @@ function PreviewDialog({ item, onOpenChange }: PreviewDialogProps) {
         <FilePreviewContent
           name={item.name}
           kind={item.previewKind}
-          mediaUrl={item.previewUrl}
+          file={item.file}
+          url={item.previewUrl}
           text={
-            item.previewKind === "text" ? (item.textPreview ?? "") : undefined
+            item.previewKind === "text" || item.previewKind === "markdown"
+              ? (item.textPreview ?? "")
+              : undefined
           }
           size={item.size}
           mimeType={item.file.type}
