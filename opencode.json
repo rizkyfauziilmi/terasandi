@@ -1,0 +1,16 @@
+{
+  "mcp": {
+    "servers": {
+      "drizzle": {
+        "type": "local",
+        "command": [
+          "pnpm",
+          "exec",
+          "drizzle-kit",
+          "mcp"
+        ],
+        "cwd": "/home/rizkyfauziilmi/Projects/Web/Personal/terasandi"
+      }
+    }
+  }
+}
