@@ -11,6 +11,16 @@
         ],
         "cwd": "/home/rizkyfauziilmi/Projects/Web/Personal/terasandi"
       }
+    },
+    "shadcn": {
+      "type": "local",
+      "command": [
+        "npx",
+        "shadcn@latest",
+        "mcp"
+      ],
+      "enabled": true
     }
-  }
+  },
+  "$schema": "https://opencode.ai/config.json"
 }
