@@ -12,6 +12,7 @@ This repository currently contains the application foundation: authentication, f
 
 - Next.js 16 (App Router) and React 19
 - TypeScript and Tailwind CSS v4
+- Prettier with Tailwind CSS class sorting, integrated with ESLint
 - shadcn/ui with Base UI primitives
 - Better Auth with the username and admin plugins
 - Drizzle ORM with PostgreSQL
@@ -64,6 +65,8 @@ Open [http://localhost:3000](http://localhost:3000). On a fresh database you wil
 | `pnpm build` | Create a production build. |
 | `pnpm start` | Serve the production build. |
 | `pnpm lint` | Run ESLint. |
+| `pnpm format` | Format supported files with Prettier. |
+| `pnpm format:check` | Check formatting without writing files. |
 | `pnpm db:up` | Start the PostgreSQL and Mailpit containers and wait for them to be healthy. |
 | `pnpm db:down` | Stop the PostgreSQL container. |
 | `pnpm db:generate` | Generate a migration from `db/schema.ts`. |
@@ -99,6 +102,7 @@ scripts/         Seed script
 ## Verification
 
 ```bash
+pnpm format:check
 pnpm exec tsc --noEmit
 pnpm lint
 pnpm build
