@@ -20,6 +20,7 @@ Do not guess an API from memory when one of these sources is available.
 
 ## Commits
 
+- **Never commit, create a pull request, or push unless the user explicitly asks for it.** Finishing work is not a request to commit. Leave changes uncommitted and report what changed instead; only run `git commit`, `gh pr create`, or `git push` after an explicit instruction.
 - Follow Conventional Commits: `<type>(<optional scope>): <imperative summary>`, for example `feat(auth): add first-run admin onboarding`, `fix(proxy): redirect to setup when no users exist`, `docs: document agent rules`.
 - Use types such as `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `perf`, `build`, `ci`, `style`, `revert`.
 - Keep the subject lowercase, imperative, at most 72 characters, and without a trailing period. Explain **why** in the body (wrapped around 72 characters), not just what changed. Add a `BREAKING CHANGE:` footer when applicable.
