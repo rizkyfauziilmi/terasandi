@@ -111,6 +111,8 @@ scripts/         Seed script
 pnpm check
 ```
 
+CI runs `pnpm check` and validates Drizzle migrations on pushes to `main` and pull requests.
+
 ## License
 
 Released under the [MIT License](LICENSE).
