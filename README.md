@@ -21,7 +21,7 @@ This repository currently contains the application foundation: authentication, f
 
 - Node.js 20.9.0 or newer
 - pnpm 12.21.0 (enable with `corepack enable`)
-- Docker with Docker Compose, or an existing PostgreSQL database
+- Docker with Docker Compose (PostgreSQL and Mailpit), or an existing PostgreSQL database and SMTP server
 - OpenSSL, to generate the auth secret
 
 ## Quick Start
@@ -37,7 +37,7 @@ pnpm db:setup
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). On a fresh database you will be redirected to `/onboarding` to create the first administrator account. After that, sign in at `/sign-in`.
+Open [http://localhost:3000](http://localhost:3000). On a fresh database you will be redirected to `/onboarding` to create the first administrator account. Open the verification link sent to that address (locally, messages are captured by Mailpit at [http://localhost:8025](http://localhost:8025)), then sign in at `/sign-in`.
 
 ## Environment Variables
 
@@ -50,6 +50,11 @@ Open [http://localhost:3000](http://localhost:3000). On a fresh database you wil
 | `DATABASE_URL` | `postgres://postgres:postgres@localhost:5433/terasandi` | Connection string used by Drizzle and Better Auth. |
 | `BETTER_AUTH_SECRET` | output of `openssl rand -base64 32` | Secret used to sign and encrypt auth tokens. |
 | `BETTER_AUTH_URL` | `http://localhost:3000` | Base URL of the application. |
+| `SMTP_HOST` | `localhost` | SMTP server host. Defaults to the local Mailpit container. |
+| `SMTP_PORT` | `1025` | SMTP server port. Use `587` with Gmail. |
+| `SMTP_USER` | empty | SMTP username. Leave empty for local Mailpit. |
+| `SMTP_PASS` | empty | SMTP password or Gmail App Password. Leave empty for local Mailpit. |
+| `EMAIL_FROM` | `Terasandi <noreply@localhost>` | Sender address for authentication emails. |
 
 ## Scripts
 
@@ -59,7 +64,7 @@ Open [http://localhost:3000](http://localhost:3000). On a fresh database you wil
 | `pnpm build` | Create a production build. |
 | `pnpm start` | Serve the production build. |
 | `pnpm lint` | Run ESLint. |
-| `pnpm db:up` | Start the PostgreSQL container and wait for it to be healthy. |
+| `pnpm db:up` | Start the PostgreSQL and Mailpit containers and wait for them to be healthy. |
 | `pnpm db:down` | Stop the PostgreSQL container. |
 | `pnpm db:generate` | Generate a migration from `db/schema.ts`. |
 | `pnpm db:migrate` | Apply pending migrations. |
