@@ -33,6 +33,8 @@ Do not guess an API from memory when one of these sources is available.
 - Run `gh auth status` first, use `--repo OWNER/REPO` when the current directory's repo is ambiguous, use `--json`/`--jq` for structured output, and pass an explicit `-L/--limit` to list and search commands to avoid silent truncation.
 - Search for an existing issue or PR before creating a new one. Look for repository PR templates (`.github/PULL_REQUEST_TEMPLATE.md` or `pull_request_template.md`) and follow them.
 - **Every PR must be complete and self-contained.** The body must include: a clear summary, motivation/context, what changed, how it was tested (commands and results), screenshots or recordings for UI changes, migration/breaking-change/rollout notes, linked issues, deploy or config requirements, and any remaining work or follow-ups. Never open an empty or placeholder PR.
+- **Always label a PR.** List available labels with `gh label list --limit 50` and reuse the exact existing names (for example `enhancement` for `feat`, `bug` for `fix`, `documentation` for `docs`). Do not create new labels unless the user asks. If no existing label fits, leave the PR unlabeled and say so in the final report instead of inventing one.
+- Pass labels at creation with `gh pr create --label ...` or add them later with `gh pr edit <number> --add-label ...`, and verify the result with `gh pr view <number> --json labels`.
 
 ## README scope
 

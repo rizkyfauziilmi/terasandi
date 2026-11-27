@@ -7,7 +7,7 @@ import { user } from "@/db/schema";
 import { auth } from "@/lib/auth";
 
 export type CreateFirstAdminResult =
-  | { ok: true }
+  | { ok: true; email: string }
   | { ok: false; error: string };
 
 export async function createFirstAdmin(input: {
@@ -29,7 +29,7 @@ export async function createFirstAdmin(input: {
         name: input.username,
         role: "admin",
         data: {
-          emailVerified: true,
+          emailVerified: false,
           username: input.username,
           displayUsername: input.username,
         },
@@ -40,7 +40,7 @@ export async function createFirstAdmin(input: {
       return { ok: false, error: "Failed to create the admin account." };
     }
 
-    return { ok: true };
+    return { ok: true, email: result.user.email };
   } catch (error) {
     if (error instanceof APIError) {
       return { ok: false, error: error.message };

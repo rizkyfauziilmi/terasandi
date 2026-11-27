@@ -64,7 +64,17 @@ export function SignInForm() {
             });
 
         if (result.error) {
-          throw new Error(result.error.message ?? "Failed to sign in.");
+          if (result.error.status === 403 && values.identifier.includes("@")) {
+            router.replace(
+              `/onboarding/verify?email=${encodeURIComponent(values.identifier)}`,
+            );
+          }
+
+          throw new Error(
+            result.error.status === 403
+              ? "Please verify your email before signing in. Check your inbox for the verification link."
+              : (result.error.message ?? "Failed to sign in."),
+          );
         }
 
         form.reset();

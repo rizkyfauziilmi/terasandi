@@ -83,24 +83,22 @@ export function OnboardingForm() {
           throw new Error(result.error);
         }
 
-        const signInResult = await authClient.signIn.email({
-          email: values.email,
-          password: values.password,
+        const verificationURL = `/onboarding/verify?email=${encodeURIComponent(result.email)}`;
+
+        // Account creation is complete at this point. The verification page
+        // offers a resend action if delivery fails or the email is lost.
+        await authClient.sendVerificationEmail({
+          email: result.email,
+          callbackURL: verificationURL,
         });
 
-        if (signInResult.error) {
-          throw new Error(
-            signInResult.error.message ?? "Failed to sign in. Please sign in manually.",
-          );
-        }
-
         form.reset();
-        router.replace("/");
+        router.replace(verificationURL);
         router.refresh();
       })(),
       {
         loading: "Creating the admin account...",
-        success: "Setup complete. Welcome to Terasandi.",
+        success: "Account created. Check your inbox to verify your email.",
         error: (error: unknown) =>
           error instanceof Error
             ? error.message
