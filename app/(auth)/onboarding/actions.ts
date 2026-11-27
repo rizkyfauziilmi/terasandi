@@ -7,8 +7,7 @@ import { user } from "@/db/schema";
 import { auth } from "@/lib/auth";
 
 export type CreateFirstAdminResult =
-  | { ok: true; email: string }
-  | { ok: false; error: string };
+  { ok: true; email: string } | { ok: false; error: string };
 
 export async function createFirstAdmin(input: {
   email: string;

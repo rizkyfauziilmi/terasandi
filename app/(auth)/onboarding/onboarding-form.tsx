@@ -42,10 +42,7 @@ const formSchema = z
       .string()
       .min(3, "Username must be at least 3 characters.")
       .max(30, "Username must be at most 30 characters.")
-      .regex(
-        /^[A-Za-z0-9_.]+$/,
-        "Use letters, numbers, dots, or underscores.",
-      ),
+      .regex(/^[A-Za-z0-9_.]+$/, "Use letters, numbers, dots, or underscores."),
     password: z.string().min(8, "Password must be at least 8 characters."),
     confirmPassword: z.string().min(1, "Please confirm your password."),
   })
