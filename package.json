@@ -11,7 +11,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "email:dev": "email dev --dir emails --port 3001",
-    "check": "pnpm format:check && pnpm exec tsc --noEmit && pnpm lint && pnpm build",
+    "check": "pnpm format:check && pnpm exec next typegen && pnpm exec tsc --noEmit && pnpm lint && pnpm build",
     "db:up": "docker compose up -d --wait",
     "db:down": "docker compose down",
     "db:generate": "drizzle-kit generate",
