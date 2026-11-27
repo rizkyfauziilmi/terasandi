@@ -13,6 +13,7 @@ This repository currently contains the application foundation: authentication, f
 - Next.js 16 (App Router) and React 19
 - TypeScript and Tailwind CSS v4
 - Prettier with Tailwind CSS class sorting, integrated with ESLint
+- React Email for HTML verification emails
 - shadcn/ui with Base UI primitives
 - Better Auth with the username and admin plugins
 - Drizzle ORM with PostgreSQL
@@ -20,7 +21,7 @@ This repository currently contains the application foundation: authentication, f
 
 ## Prerequisites
 
-- Node.js 20.9.0 or newer
+- Node.js 20.19.0 or newer (required by React Email)
 - pnpm 12.21.0 (enable with `corepack enable`)
 - Docker with Docker Compose (PostgreSQL and Mailpit), or an existing PostgreSQL database and SMTP server
 - OpenSSL, to generate the auth secret
@@ -39,6 +40,8 @@ pnpm dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000). On a fresh database you will be redirected to `/onboarding` to create the first administrator account. Open the verification link sent to that address (locally, messages are captured by Mailpit at [http://localhost:8025](http://localhost:8025)), then sign in at `/sign-in`.
+
+Preview the verification email template separately with `pnpm email:dev` at [http://localhost:3001](http://localhost:3001).
 
 ## Environment Variables
 
@@ -67,6 +70,8 @@ Open [http://localhost:3000](http://localhost:3000). On a fresh database you wil
 | `pnpm lint` | Run ESLint. |
 | `pnpm format` | Format supported files with Prettier. |
 | `pnpm format:check` | Check formatting without writing files. |
+| `pnpm email:dev` | Preview email templates at `http://localhost:3001`. |
+| `pnpm check` | Run formatting, type, lint, and build checks. |
 | `pnpm db:up` | Start the PostgreSQL and Mailpit containers and wait for them to be healthy. |
 | `pnpm db:down` | Stop the PostgreSQL container. |
 | `pnpm db:generate` | Generate a migration from `db/schema.ts`. |
@@ -94,6 +99,7 @@ components/ui/   shadcn/ui components
 components/      Shared components such as the sign-out button
 db/              Drizzle schema and client
 drizzle/         Generated SQL migrations and snapshots
+emails/          React Email templates
 lib/             Better Auth server and client configuration
 proxy.ts         Route gating for authentication and setup
 scripts/         Seed script
@@ -102,10 +108,7 @@ scripts/         Seed script
 ## Verification
 
 ```bash
-pnpm format:check
-pnpm exec tsc --noEmit
-pnpm lint
-pnpm build
+pnpm check
 ```
 
 ## License
