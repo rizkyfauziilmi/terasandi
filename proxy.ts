@@ -5,7 +5,8 @@ import { db } from "@/db";
 import { user } from "@/db/schema";
 import { auth } from "@/lib/auth";
 
-const authRoutes = ["/sign-in", "/sign-up", "/onboarding"];
+const verifyRoute = "/onboarding/verify";
+const authRoutes = ["/sign-in", "/sign-up", "/onboarding", verifyRoute];
 
 async function hasAnyUser() {
   const [existingUser] = await db.select({ id: user.id }).from(user).limit(1);
@@ -43,11 +44,15 @@ export async function proxy(request: NextRequest) {
     if (hasUsers && pathname === "/onboarding") {
       return NextResponse.redirect(new URL("/sign-in", request.url));
     }
+
+    if (!hasUsers && pathname === verifyRoute) {
+      return NextResponse.redirect(new URL("/onboarding", request.url));
+    }
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/", "/sign-in", "/sign-up", "/onboarding"],
+  matcher: ["/", "/sign-in", "/sign-up", "/onboarding", "/onboarding/verify"],
 };
