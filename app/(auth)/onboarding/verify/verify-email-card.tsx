@@ -113,8 +113,8 @@ export function VerifyEmailCard({
           </Alert>
         ) : null}
         <p className="text-sm text-muted-foreground">
-          The link expires in 1 hour. If you don&apos;t see the email, check your
-          spam folder or send it again.
+          The link expires in 1 hour. If you don&apos;t see the email, check
+          your spam folder or send it again.
         </p>
       </CardContent>
       <CardFooter className="flex-col items-stretch gap-2">
@@ -133,8 +133,7 @@ export function VerifyEmailCard({
           className="w-full"
           onClick={() => router.refresh()}
         >
-          <RefreshCwIcon data-icon="inline-start" />
-          I verified my email
+          <RefreshCwIcon data-icon="inline-start" />I verified my email
         </Button>
       </CardFooter>
     </Card>

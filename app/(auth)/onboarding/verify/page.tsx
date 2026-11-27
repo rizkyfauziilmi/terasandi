@@ -26,7 +26,8 @@ export default async function VerifyEmailPage({
 }: VerifyEmailPageProps) {
   const params = await searchParams;
   const emailParam = typeof params.email === "string" ? params.email : "";
-  const errorParam = typeof params.error === "string" ? params.error : undefined;
+  const errorParam =
+    typeof params.error === "string" ? params.error : undefined;
   const email = emailParam.toLowerCase();
 
   const [record] = email.includes("@")

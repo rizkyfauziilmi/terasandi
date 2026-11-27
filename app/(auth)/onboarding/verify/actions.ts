@@ -5,8 +5,7 @@ import * as z from "zod";
 import { auth } from "@/lib/auth";
 
 export type ResendVerificationEmailResult =
-  | { ok: true }
-  | { ok: false; error: string };
+  { ok: true } | { ok: false; error: string };
 
 export async function resendVerificationEmail(
   email: string,
