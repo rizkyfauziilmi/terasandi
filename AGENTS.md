@@ -32,3 +32,9 @@ Do not guess an API from memory when one of these sources is available.
 - Run `gh auth status` first, use `--repo OWNER/REPO` when the current directory's repo is ambiguous, use `--json`/`--jq` for structured output, and pass an explicit `-L/--limit` to list and search commands to avoid silent truncation.
 - Search for an existing issue or PR before creating a new one. Look for repository PR templates (`.github/PULL_REQUEST_TEMPLATE.md` or `pull_request_template.md`) and follow them.
 - **Every PR must be complete and self-contained.** The body must include: a clear summary, motivation/context, what changed, how it was tested (commands and results), screenshots or recordings for UI changes, migration/breaking-change/rollout notes, linked issues, deploy or config requirements, and any remaining work or follow-ups. Never open an empty or placeholder PR.
+
+## README scope
+
+`README.md` is intentionally limited to: project title and description, overview, tech stack, prerequisites, quick start, environment variables, scripts, database and migrations, project structure, verification, and license. Do **not** add feature lists, roadmaps, or a dedicated authentication-flow section unless explicitly requested.
+
+Change the README only when the facts it documents actually change (setup steps, commands, environment variables, stack, structure, or product description). Otherwise leave it untouched. Keep it in English and avoid speculative or aspirational claims.
