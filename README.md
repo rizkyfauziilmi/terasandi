@@ -86,22 +86,20 @@ Preview the verification email template separately with `pnpm email:dev` at [htt
 
 ## Database and Migrations
 
-The schema lives in `db/schema.ts` and generated migrations live in `drizzle/`. After changing the schema, run `pnpm db:generate` and review the generated SQL before applying it with `pnpm db:migrate`. Use `pnpm db:studio` to inspect the database.
+The schema lives in `src/db/schema.ts` and generated migrations live in `drizzle/`. After changing the schema, run `pnpm db:generate` and review the generated SQL before applying it with `pnpm db:migrate`. Use `pnpm db:studio` to inspect the database.
 
 The Docker Compose setup stores data in the `postgres_data` volume. `pnpm db:reset` deletes that volume, so do not use it against data you want to keep.
 
 ## Project Structure
 
 ```text
-app/(auth)/      Sign-in and first-run onboarding pages and forms
-app/             Routes and root layout
-components/ui/   shadcn/ui components
-components/      Shared components such as the sign-out button
-db/              Drizzle schema and client
+src/app/         Routes, layouts, and route groups
+src/components/  Shared and UI components
+src/db/          Drizzle schema and client
+src/emails/      React Email templates
+src/lib/         Better Auth server and client configuration
+src/proxy.ts     Route gating for authentication and setup
 drizzle/         Generated SQL migrations and snapshots
-emails/          React Email templates
-lib/             Better Auth server and client configuration
-proxy.ts         Route gating for authentication and setup
 scripts/         Seed script
 ```
 
